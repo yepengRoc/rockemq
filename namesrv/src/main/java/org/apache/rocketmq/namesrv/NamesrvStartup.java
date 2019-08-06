@@ -81,7 +81,12 @@ public class NamesrvStartup {
 
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
-        nettyServerConfig.setListenPort(9876);
+        nettyServerConfig.setListenPort(9876);//设置默认端口
+        /**
+         *  -c  configFile 指定配置文件的路径
+         *  --属性名 属性值  例如： --listenPort 9876  通过此方式指定监听端口
+         *  通过命令 ./mqnameserver -c configFile -p 打印当前加载的配置项
+         */
         if (commandLine.hasOption('c')) {// - c 参数指定配置文件路径
             String file = commandLine.getOptionValue('c');
             if (file != null) {

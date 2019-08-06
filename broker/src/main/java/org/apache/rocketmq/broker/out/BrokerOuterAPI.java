@@ -111,6 +111,21 @@ public class BrokerOuterAPI {
         this.remotingClient.updateNameServerAddressList(lst);
     }
 
+    /**
+     *
+     * @param clusterName  集群名称
+     * @param brokerAddr broker地址
+     * @param brokerName broker名称
+     * @param brokerId brokerid 0：master 1:slave
+     * @param haServerAddr master地址，初次请求为空，salve向nameserver注册后返回
+     * @param topicConfigWrapper
+     *      封装的是TopicConfigManager中的topicConfitTable  和一些默认属性 。默认属性存储在${Rocket_Home}/store/config/topic.json
+     * @param filterServerList 消息过滤服务器列表
+     * @param oneway  同步方式
+     * @param timeoutMills
+     * @param compressed
+     * @return
+     */
     public List<RegisterBrokerResult> registerBrokerAll(
         final String clusterName,
         final String brokerAddr,

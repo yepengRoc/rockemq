@@ -45,22 +45,53 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
+/**
+ * 一个topic 对应多个消息队列，一个broker为每一个主题（topic）创建4个读队列和4个写队列
+ * 多个broker组成一个集群，brokername由相同的多台broker组成master-slave架构，brokerid 为0表示master 大于0表示slave
+ * brokerliveinfo中的lastupdatetimestamp存储上次收到的broker心跳包的时间
+ */
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    /**
+     * 消息队列路由信息。消息发送时根据路由表进行负载均衡
+     * key:主题名称
+     * value:private String brokerName;  broker名称
+     *     private int readQueueNums; 读队列数量
+     *     private int writeQueueNums;写队列数量
+     *     private int perm; 权限
+     *     private int topicSynFlag;
+     */
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+    /**
+     * broker基础信息，包含brokername 所属集群名称 主备broker地址
+     * key:broker名称
+     * value: private String cluster; 集群名称
+     *     private String brokerName; broker名称
+     *     private HashMap<Long brokerId ,String broker address >brokerAddrs; brokerId和对应broker地址
+     *              key:brokerId 编号 value:broker地址列表
+     */
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
     /**
      * broker集群信息，存储broker集群中 所有的broker名称
+     * key:集群名称
+     * value:集群中对应的broke名称
      */
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
     /**
      * broker状态信息。nameserver每次收到心跳信息会进行信息系更新
+     * key:broker 地址
+     * value: private long lastUpdateTimestamp; 上一次更新时间
+     *     private DataVersion dataVersion;
+     *     private Channel channel;
+     *     private String haServerAddr;
      */
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
     /**
-     * 用于类消息过滤
+     * broker上的filterserver列表，用于类消息过滤
+     * key:broker地址
+     * value:过滤类或服务
      */
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
@@ -435,6 +466,9 @@ public class RouteInfoManager {
         return null;
     }
 
+    /**
+     * broker信息超过120秒没有更新，则移除。并关闭对应的socket
+     */
     public void scanNotActiveBroker() {
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
         while (it.hasNext()) {
