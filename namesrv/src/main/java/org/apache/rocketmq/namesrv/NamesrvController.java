@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.namesrv;
 
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -157,6 +158,10 @@ public class NamesrvController {
     }
 
     public void start() throws Exception {
+
+        /**
+         * netty 服务端启动。复用 响应码逻辑
+         */
         this.remotingServer.start();
 
         if (this.fileWatchService != null) {
