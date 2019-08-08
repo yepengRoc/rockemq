@@ -77,26 +77,31 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * </p>
      *
      * See {@linktourl http://rocketmq.apache.org/docs/core-concept/} for more discussion.
+     * 生产者所属组
      */
     private String producerGroup;//生产者所属组
 
     /**
      * Just for testing or demo program
+     * 默认topic key
      */
     private String createTopicKey = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
 
     /**
+     * 默认主题在每一个broke上的队列数量
      * Number of queues to create per default topic.
      */
     private volatile int defaultTopicQueueNums = 4;
 
     /**
      * Timeout for sending messages.
+     * 默认超时时间
      */
     private int sendMsgTimeout = 3000;
 
     /**
      * Compress message body threshold, namely, message body larger than 4k will be compressed on default.
+     * 消息长度超过改值启用压缩。默认4K
      */
     private int compressMsgBodyOverHowmuch = 1024 * 4;
 
@@ -105,6 +110,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * </p>
      *
      * This may potentially cause message duplication which is up to application developers to resolve.
+     * 同步方式发送消息重试的次数，默认为2.如果失败 总共执行3次
      */
     private int retryTimesWhenSendFailed = 2;
 
@@ -113,11 +119,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * </p>
      *
      * This may potentially cause message duplication which is up to application developers to resolve.
+     * 异步方式发送消息重试的次数
      */
     private int retryTimesWhenSendAsyncFailed = 2;
 
     /**
      * Indicate whether to retry another broker on sending failure internally.
+     * 消息重试时选择另外一个broker时，是否不等待存储结果就返回，默认为false
      */
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
 
@@ -575,10 +583,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Create a topic on broker.
      *
-     * @param key accesskey
-     * @param newTopic topic name
-     * @param queueNum topic's queue number
-     * @param topicSysFlag topic system flag
+     * @param key accesskey  未实际使用，可以和newTopic相同
+     * @param newTopic topic name  主题名称
+     * @param queueNum topic's queue number  队列数量
+     * @param topicSysFlag topic system flag 主题系统标签
      * @throws MQClientException if there is any client error.
      */
     @Override

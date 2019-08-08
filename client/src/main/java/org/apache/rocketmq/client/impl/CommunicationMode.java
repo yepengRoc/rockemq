@@ -17,7 +17,16 @@
 package org.apache.rocketmq.client.impl;
 
 public enum CommunicationMode {
+    /**
+     * 生产者发送消息，同步等待直到服务器返回响应结果
+     */
     SYNC,
+    /**
+     * 生产者发送消息，指定一个回调函数，然后不管是否响应，则立即返回。响应回来后则执行对应的回调函数。在一个新的线程中执行
+     */
     ASYNC,
+    /**
+     *单向。生产者发送消息，没有回调，不管成功失败，直接返回
+     */
     ONEWAY,
 }

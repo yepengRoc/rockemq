@@ -26,9 +26,15 @@ public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
 
     private String topic;
+    /**
+     * 扩展属性，消息体
+     */
     private int flag;
     private Map<String, String> properties;//里面会记录
     private byte[] body;
+    /**
+     * 事务 id
+     */
     private String transactionId;
 
     public Message() {
@@ -38,14 +44,28 @@ public class Message implements Serializable {
         this(topic, "", "", 0, body, true);
     }
 
+    /**
+     *
+     * @param topic
+     * @param tags  消息tag，用于消息过滤
+     * @param keys  message索引键，多个用空格分割，rocketmq可根据key快速检索消息
+     * @param flag
+     * @param body
+     * @param waitStoreMsgOK  消息发送时是否等消息存储完成后再返回
+     *                        delayTimeLevel消息延迟级别，用于定时消息或消息重试 存储在properties 里
+     */
     public Message(String topic, String tags, String keys, int flag, byte[] body, boolean waitStoreMsgOK) {
         this.topic = topic;
         this.flag = flag;
         this.body = body;
-
+        /**
+         * 消息tag，用于消息过滤
+         */
         if (tags != null && tags.length() > 0)
             this.setTags(tags);
-
+        /**
+         * message索引键，多个用空格分割，rocketmq可根据key快速检索消息
+         */
         if (keys != null && keys.length() > 0)
             this.setKeys(keys);
 

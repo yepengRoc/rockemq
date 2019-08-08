@@ -140,7 +140,7 @@ public class RouteInfoManager {
     }
 
     /**
-     * 进行broker注册
+     * 进行broker注册。更新broker对应的数据结构
      * @param clusterName
      * @param brokerAddr
      * @param brokerName
@@ -497,6 +497,11 @@ public class RouteInfoManager {
         }
     }
 
+    /**
+     * 整整移除无效 broker的地方
+     * @param remoteAddr
+     * @param channel
+     */
     public void onChannelDestroy(String remoteAddr, Channel channel) {
         String brokerAddrFound = null;
         if (channel != null) {
