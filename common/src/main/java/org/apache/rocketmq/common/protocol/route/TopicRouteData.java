@@ -42,7 +42,7 @@ public class TopicRouteData extends RemotingSerializable {
      */
     private List<BrokerData> brokerDatas;
     /**
-     * broker上过滤服务器地址列表
+     * broker上过滤服务器地址列表  key:broker地址 value:过滤服务地址列表
      */
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 

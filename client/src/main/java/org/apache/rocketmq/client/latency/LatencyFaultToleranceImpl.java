@@ -62,6 +62,12 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         this.faultItemTable.remove(name);
     }
 
+    /**
+     * 如果队列都不可用。则从失败队列中选一个。
+     * 选的规则是：
+     * 失败队列也维护了一个自增数 whichItemWorst。每次用这个数自增 跟失败队列数取摸
+     * @return
+     */
     @Override
     public String pickOneAtLeast() {
         final Enumeration<FaultItem> elements = this.faultItemTable.elements();
@@ -72,8 +78,9 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
 
         if (!tmpList.isEmpty()) {
+            //随机打乱数组
             Collections.shuffle(tmpList);
-
+            //排序 根据 是否可用  失败次数  时间 排序
             Collections.sort(tmpList);
 
             final int half = tmpList.size() / 2;
