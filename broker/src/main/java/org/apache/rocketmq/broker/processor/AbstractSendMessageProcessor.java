@@ -168,6 +168,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 + "] sending message is forbidden");
             return response;
         }
+        /**
+         * 默认主题不能进行消息发送，仅仅提供路由查找
+         */
         if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
             String errorMsg = "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
             log.warn(errorMsg);
@@ -213,7 +216,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         }
 
         int queueIdInt = requestHeader.getQueueId();
-        int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
+        int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());//当前队列
         if (queueIdInt >= idValid) {
             String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s",
                 queueIdInt,

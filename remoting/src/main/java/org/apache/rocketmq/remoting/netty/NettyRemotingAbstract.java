@@ -201,8 +201,9 @@ public abstract class NettyRemotingAbstract {
                 public void run() {
                     try {
                         doBeforeRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
-                        //netty通信，处理请求
+                        //netty通信，处理请求 TODO
                         final RemotingCommand response = pair.getObject1().processRequest(ctx, cmd);
+
                         doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
 
                         if (!cmd.isOnewayRPC()) {

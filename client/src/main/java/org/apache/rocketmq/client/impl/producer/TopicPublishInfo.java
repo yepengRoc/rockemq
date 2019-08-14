@@ -38,6 +38,9 @@ public class TopicPublishInfo {
      * 每选择一次消息队列，该值会自增1，如果Integer.MAX_VALUE则重置为0，用于选择消息队列
      */
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
+    /**
+     * 主题路由信息
+     */
     private TopicRouteData topicRouteData;
 
     public boolean isOrderTopic() {
