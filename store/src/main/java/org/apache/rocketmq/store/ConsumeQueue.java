@@ -24,6 +24,17 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+/**
+ * cosumequeue
+ * ---topic目录
+ * ------队列编号
+ * 数据结构 8字节(commitlog offset)|4字节(size)|8字节(tag hashcode)
+ * 单个cosumequeue 文件默认 30w个条目。 单个文件长度为 30w*20字节
+ * 单个cosumequeue文件可看成一个数组，其下标为cosumequeue的逻辑偏移量，消息消费进度存储的偏移量即逻辑偏移量
+ *
+ * 消息进入commitlog后，由专门的线程转发这里，从而构建消费队列和索引文件
+ *
+ */
 public class ConsumeQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -483,6 +494,11 @@ public class ConsumeQueue {
         }
     }
 
+    /**
+     * 根据提供的索引 计算消息的实际偏移量
+     * @param startIndex
+     * @return
+     */
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
         int mappedFileSize = this.mappedFileSize;
         long offset = startIndex * CQ_STORE_UNIT_SIZE;
