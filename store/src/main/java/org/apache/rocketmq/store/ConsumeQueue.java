@@ -534,9 +534,20 @@ public class ConsumeQueue {
         this.minLogicOffset = minLogicOffset;
     }
 
+    /**
+     * 根据当前偏移量，获取下一个文件的起始偏移量
+     * @param indexd
+     * @return
+     */
     public long rollNextFile(final long index) {
         int mappedFileSize = this.mappedFileSize;
+        //计算一个文件有多少个条消息
         int totalUnitsInFile = mappedFileSize / CQ_STORE_UNIT_SIZE;
+        /**
+         * index + totalUnitsInFile 当前条数 加一个文件的条数 = 下一个文件的index
+         * index % totalUnitsInFile 获取 index在一个文件中的位置
+         */
+
         return index + totalUnitsInFile - index % totalUnitsInFile;
     }
 

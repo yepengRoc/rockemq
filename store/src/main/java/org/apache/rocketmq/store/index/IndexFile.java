@@ -29,10 +29,25 @@ import org.apache.rocketmq.store.MappedFile;
 
 public class IndexFile {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    /**
+     * 一个hash索引项占用4个字节
+     */
     private static int hashSlotSize = 4;
+    /**
+     * 每个index索引 20byte  1byte=8bit
+     */
     private static int indexSize = 20;
+    /**
+     * 无效索引
+     */
     private static int invalidIndex = 0;
+    /**
+     * hash槽的个数 500w
+     */
     private final int hashSlotNum;
+    /**
+     * index 索引个数2000w
+     */
     private final int indexNum;
     private final MappedFile mappedFile;
     private final FileChannel fileChannel;
@@ -89,10 +104,19 @@ public class IndexFile {
         return this.mappedFile.destroy(intervalForcibly);
     }
 
+    /**
+     * 将消息索引建与消息偏移量映射关系写入到indexFile
+     * @param key
+     * @param phyOffset
+     * @param storeTimestamp
+     * @return
+     */
     public boolean putKey(final String key, final long phyOffset, final long storeTimestamp) {
+        //索引文件未写满
         if (this.indexHeader.getIndexCount() < this.indexNum) {
             int keyHash = indexKeyHashMethod(key);
             int slotPos = keyHash % this.hashSlotNum;
+            //头文件40字节，加上
             int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize;
 
             FileLock fileLock = null;
@@ -101,11 +125,17 @@ public class IndexFile {
 
                 // fileLock = this.fileChannel.lock(absSlotPos, hashSlotSize,
                 // false);
+                /**
+                 * 读取hash槽存储的数据，如果数据<0或 大于当前索引文件中的索引条目格式（计算出的索引值大于已经使用的最大索引值）
+                 */
                 int slotValue = this.mappedByteBuffer.getInt(absSlotPos);
                 if (slotValue <= invalidIndex || slotValue > this.indexHeader.getIndexCount()) {
+                    //重置槽内的值为0
                     slotValue = invalidIndex;
                 }
-
+                /**
+                 * 计算待存储消息的时间戳与第一个条消息时间戳的差值，并转换为秒
+                 */
                 long timeDiff = storeTimestamp - this.indexHeader.getBeginTimestamp();
 
                 timeDiff = timeDiff / 1000;
@@ -186,6 +216,15 @@ public class IndexFile {
         return result;
     }
 
+    /**
+     *
+     * @param phyOffsets 查找到的消息物理偏移量
+     * @param key 索引key
+     * @param maxNum 本次查找的最大消息条数
+     * @param begin 开始时间戳
+     * @param end 结束时间戳
+     * @param lock
+     */
     public void selectPhyOffset(final List<Long> phyOffsets, final String key, final int maxNum,
         final long begin, final long end, boolean lock) {
         if (this.mappedFile.hold()) {
