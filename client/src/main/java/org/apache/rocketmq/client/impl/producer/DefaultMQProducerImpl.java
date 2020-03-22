@@ -113,9 +113,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer, RPCHook rpcHook) {
         this.defaultMQProducer = defaultMQProducer;
-        this.rpcHook = rpcHook;
-
+        this.rpcHook = rpcHook;//
+        //异步发送线程队列
         this.asyncSenderThreadPoolQueue = new LinkedBlockingQueue<Runnable>(50000);
+        //异步发送线程池. cpu核心数个线程
         this.defaultAsyncSenderExecutor = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors(),
             Runtime.getRuntime().availableProcessors(),
@@ -172,9 +173,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         switch (this.serviceState) {
             case CREATE_JUST:
                 this.serviceState = ServiceState.START_FAILED;
-
+                //检查配置信息
                 this.checkConfig();
-
+                //如果是内部生产组，则跟换实例名为pid 线程id
                 if (!this.defaultMQProducer.getProducerGroup().equals(MixAll.CLIENT_INNER_PRODUCER_GROUP)) {
                     //改变client中的 instanceName 为线程id
                     this.defaultMQProducer.changeInstanceNameToPID();
@@ -547,6 +548,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     brokersSent[times] = mq.getBrokerName();
                     try {
                         beginTimestampPrev = System.currentTimeMillis();
+                        //这个地方比较鸡肋，如果第一次超时了，以后每次都会超时。应该在for循环里重置beginTimestampFirst
                         long costTime = beginTimestampPrev - beginTimestampFirst;
                         if (timeout < costTime) {
                             callTimeout = true;

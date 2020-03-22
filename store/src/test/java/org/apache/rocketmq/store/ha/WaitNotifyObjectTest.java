@@ -20,6 +20,8 @@ package org.apache.rocketmq.store.ha;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
+
 import static org.junit.Assert.*;
 
 public class WaitNotifyObjectTest {
@@ -38,6 +40,7 @@ public class WaitNotifyObjectTest {
             t.join();
         }
         Assert.assertEquals(0, waitNotifyObject.waitingThreadTable.size());
+//       ByteBuffer
     }
 
 }

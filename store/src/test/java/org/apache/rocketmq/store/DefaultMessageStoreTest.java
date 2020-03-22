@@ -62,6 +62,7 @@ public class DefaultMessageStoreTest {
     @Before
     public void init() throws Exception {
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
+        //生产消息的地址
         BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
 
         messageStore = buildMessageStore();
@@ -106,19 +107,28 @@ public class DefaultMessageStoreTest {
 
     private MessageStore buildMessageStore() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
+       /* messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
         messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 1024 * 10);
         messageStoreConfig.setMaxHashSlotNum(10000);
-        messageStoreConfig.setMaxIndexNum(100 * 100);
+        messageStoreConfig.setMaxIndexNum(100 * 100);*/
+        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 10);//一个文件大小是10k
+        messageStoreConfig.setMapedFileSizeConsumeQueue(256);//一个consumer文件大小
+        messageStoreConfig.setMaxHashSlotNum(10);
+        messageStoreConfig.setMaxIndexNum(200);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
-        messageStoreConfig.setFlushIntervalConsumeQueue(1);
+        messageStoreConfig.setFlushIntervalConsumeQueue(1);//刷盘间隔
         return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
     }
 
+    /**
+     * 写消息和读消息
+     */
     @Test
     public void testWriteAndRead() {
-        long totalMsgs = 10;
-        QUEUE_TOTAL = 1;
+       /* long totalMsgs = 10;
+        QUEUE_TOTAL = 1;*/
+        long totalMsgs = 1;//1 1000
+        QUEUE_TOTAL = 8;
         MessageBody = StoreMessage.getBytes();
         for (long i = 0; i < totalMsgs; i++) {
             messageStore.putMessage(buildMessage());
@@ -419,7 +429,7 @@ public class DefaultMessageStoreTest {
         return msg;
     }
 
-    private MessageExtBrokerInner buildMessage() {
+    private MessageExtBrokerInner  buildMessage() {
         return buildMessage(MessageBody, "FooBar");
     }
 

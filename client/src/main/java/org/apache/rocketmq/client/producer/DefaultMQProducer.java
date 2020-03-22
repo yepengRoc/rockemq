@@ -43,18 +43,21 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 
 /**
+ * 此类是消息发送应用的入口点
  * This class is the entry point for applications intending to send messages.
  * </p>
- *
+ *  调整公开getter / setter方法的字段是可以的，但是请记住，对于大多数情况，所有字段都应开箱即用。
  * It's fine to tune fields which exposes getter/setter methods, but keep in mind, all of them should work well out of
  * box for most scenarios.
  * </p>
  *
+ * 此类聚合各种 send 方法以将消息传递给brokers。每个人都有优点和缺点。在实际编码之前，您最好了解它们的优缺点。
  * This class aggregates various <code>send</code> methods to deliver messages to brokers. Each of them has pros and
  * cons; you'd better understand strengths and weakness of them before actually coding.
  * </p>
  *
  * <p>
+ *     线程安全：在配置和启动过程之后，此类可以视为线程安全*，并在多个线程上下文中使用。
  * <strong>Thread Safety:</strong> After configuring and starting process, this class can be regarded as thread-safe
  * and used among multiple threads context.
  * </p>
@@ -65,6 +68,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Wrapping internal implementations for virtually all methods presented in this class.
+     * 几乎为此类中介绍的所有方法包装内部实现。
      */
     protected final transient DefaultMQProducerImpl defaultMQProducerImpl;
 
@@ -82,7 +86,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private String producerGroup;//生产者所属组
 
     /**
-     * Just for testing or demo program
+     * Just for testing or demo program。为测试准备的
      * 默认topic key
      */
     private String createTopicKey = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
@@ -131,11 +135,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Maximum allowed message size in bytes.
+     * 消息默认大小是4m.
      */
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
 
     /**
      * Interface of asynchronous transfer data
+     * 异步传送结果接口
      */
     private TraceDispatcher traceDispatcher = null;
 

@@ -69,9 +69,9 @@ public class CommitLog {
         this.defaultMessageStore = defaultMessageStore;
 
         if (FlushDiskType.SYNC_FLUSH == defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
-            this.flushCommitLogService = new GroupCommitService();
+            this.flushCommitLogService = new GroupCommitService();//同步刷盘
         } else {
-            this.flushCommitLogService = new FlushRealTimeService();
+            this.flushCommitLogService = new FlushRealTimeService();//异步刷盘
         }
 
         this.commitLogService = new CommitRealTimeService();
@@ -163,6 +163,9 @@ public class CommitLog {
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
             // Began to recover from the last third file
+            /**
+             * 从倒数第3个文件开始恢复
+             */
             int index = mappedFiles.size() - 3;
             if (index < 0)
                 index = 0;
@@ -544,16 +547,18 @@ public class CommitLog {
         msg.setStoreTimestamp(System.currentTimeMillis());
         // Set the message body BODY CRC (consider the most appropriate setting
         // on the client)
-        msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
         // Back to Results
-        AppendMessageResult result = null;
-
+        AppendMessageResult result = null;//消息追加结果
+        //一个线程
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
 
         String topic = msg.getTopic();
         int queueId = msg.getQueueId();
 
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+        /**
+         * 事务性消息处理
+         */
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery 延迟消费
@@ -569,6 +574,7 @@ public class CommitLog {
                  * 原来真正的tiopic(REAL_TOPIC) 和queid(REAL_QUEID) 存储到别的字段里
                  */
                 // Backup real topic, queueId  备份真正的topic queueid
+                //记录真正的topich和queueId
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
                 msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
@@ -592,7 +598,7 @@ public class CommitLog {
             // Here settings are stored timestamp, in order to ensure an orderly
             // global
             msg.setStoreTimestamp(beginLockTimestamp);
-
+            //文件不存在或文件满了
             if (null == mappedFile || mappedFile.isFull()) {
                 mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
             }
@@ -601,7 +607,9 @@ public class CommitLog {
                 beginTimeInLock = 0;
                 return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
             }
-
+            /**
+             * 添加消息.真正生成commit log的地方
+             */
             result = mappedFile.appendMessage(msg, this.appendMessageCallback);
             switch (result.getStatus()) {
                 case PUT_OK:
@@ -1313,7 +1321,7 @@ public class CommitLog {
             this.msgStoreItemMemory.putLong(fileFromOffset + byteBuffer.position());
             // 8 SYSFLAG
             this.msgStoreItemMemory.putInt(msgInner.getSysFlag());
-            // 9 BORNTIMESTAMP
+            // 9 BORNTIMESTAMP 生成消息时间
             this.msgStoreItemMemory.putLong(msgInner.getBornTimestamp());
             // 10 BORNHOST
             this.resetByteBuffer(hostHolder, 8);

@@ -614,7 +614,8 @@ public class MQClientInstance {
                          * 与本地缓存数据进行比对
                          */
                         boolean changed = topicRouteDataIsChange(old, topicRouteData);
-                        if (!changed) {
+                        if (!changed) {//路由没有发生变化
+                            //比对路由内容，看是否需要更新
                             changed = this.isNeedUpdateTopicRouteInfo(topic);
                         } else {
                             log.info("the topic[{}] route info changed, old[{}] ,new[{}]", topic, old, topicRouteData);
@@ -775,6 +776,12 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     * 比较路由是否发生变化
+     * @param olddata
+     * @param nowdata
+     * @return
+     */
     private boolean topicRouteDataIsChange(TopicRouteData olddata, TopicRouteData nowdata) {
         if (olddata == null || nowdata == null)
             return true;
@@ -784,6 +791,7 @@ public class MQClientInstance {
         Collections.sort(old.getBrokerDatas());
         Collections.sort(now.getQueueDatas());
         Collections.sort(now.getBrokerDatas());
+        //old.equals(now) 相等，说明路由没有发生变化，！则是false,返回false表明路由没有发生变化
         return !old.equals(now);
 
     }

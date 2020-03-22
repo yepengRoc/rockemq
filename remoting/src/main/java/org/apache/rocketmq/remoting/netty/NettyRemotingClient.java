@@ -118,7 +118,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 return new Thread(r, "NettyClientPublicExecutor_" + this.threadIndex.incrementAndGet());
             }
         });
-
+        //netty work线程
         this.eventLoopGroupWorker = new NioEventLoopGroup(1, new ThreadFactory() {
             private AtomicInteger threadIndex = new AtomicInteger(0);
 
@@ -332,6 +332,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
+    /**
+     *
+     * namesrv更新，如果缓存的namesrv信息存在，且
+     * @param addrs
+     */
     @Override
     public void updateNameServerAddressList(List<String> addrs) {
         List<String> old = this.namesrvAddrList.get();

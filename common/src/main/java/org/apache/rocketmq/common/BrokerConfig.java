@@ -28,7 +28,7 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 public class BrokerConfig {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
-    private String rocketmqHome = "F:\\ideaOpenSouceReposity\\rocketmq\\distribution";//System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));//"F:\\ideaOpenSouceReposity\\rocketmq\\distribution";
     @ImportantField
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
     @ImportantField

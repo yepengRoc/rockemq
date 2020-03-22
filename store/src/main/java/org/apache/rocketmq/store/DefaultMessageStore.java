@@ -144,10 +144,11 @@ public class DefaultMessageStore implements MessageStore {
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
-        this.brokerConfig = brokerConfig;
-        this.messageStoreConfig = messageStoreConfig;
+        this.brokerConfig = brokerConfig;//broker配置
+        this.messageStoreConfig = messageStoreConfig;//message配置
         this.brokerStatsManager = brokerStatsManager;
-        this.allocateMappedFileService = new AllocateMappedFileService(this);
+        //分配服务
+        this.allocateMappedFileService = new AllocateMappedFileService(this);//线程
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             this.commitLog = new DLedgerCommitLog(this);
         } else {
@@ -155,21 +156,21 @@ public class DefaultMessageStore implements MessageStore {
         }
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
 
-        this.flushConsumeQueueService = new FlushConsumeQueueService();
+        this.flushConsumeQueueService = new FlushConsumeQueueService();//线程
         this.cleanCommitLogService = new CleanCommitLogService();
         this.cleanConsumeQueueService = new CleanConsumeQueueService();
-        this.storeStatsService = new StoreStatsService();
-        this.indexService = new IndexService(this);
-        if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+        this.storeStatsService = new StoreStatsService();//线程
+        this.indexService = new IndexService(this);//索引服务
+        if (!messageStoreConfig.isEnableDLegerCommitLog()) {//做高可用使用
             this.haService = new HAService(this);
         } else {
             this.haService = null;
         }
-        this.reputMessageService = new ReputMessageService();
+        this.reputMessageService = new ReputMessageService();//线程
 
         this.scheduleMessageService = new ScheduleMessageService(this);
 
-        this.transientStorePool = new TransientStorePool(messageStoreConfig);
+        this.transientStorePool = new TransientStorePool(messageStoreConfig);//堆外临时存储池
 
         if (messageStoreConfig.isTransientStorePoolEnable()) {
             this.transientStorePool.init();
@@ -180,8 +181,8 @@ public class DefaultMessageStore implements MessageStore {
         this.indexService.start();
 
         this.dispatcherList = new LinkedList<>();
-        this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
-        this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
+        this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());//构建消费队列
+        this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());//构建索引队列
 
         File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
         MappedFile.ensureDirOK(file.getParent());
@@ -223,7 +224,9 @@ public class DefaultMessageStore implements MessageStore {
                     new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
 
                 this.indexService.load(lastExitOK);
-
+                /**
+                 * 如果是异常退出，则需要对文件进行恢复
+                 */
                 this.recover(lastExitOK);
 
                 log.info("load over, and the max phy offset = {}", this.getMaxPhyOffset());
@@ -251,13 +254,18 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes()));
-        lockFile.getChannel().force(true);
+        lockFile.getChannel().force(true);//强制将lock 写入到lock文件
         {
             /**
              * 1. Make sure the fast-forward messages to be truncated during the recovering according to the max physical offset of the commitlog;
+             * 确保在恢复过程中根据提交日志的最大物理偏移量将快进消息截断；
              * 2. DLedger committedPos may be missing, so the maxPhysicalPosInLogicQueue maybe bigger that maxOffset returned by DLedgerCommitLog, just let it go;
+             * DLedger commitPos可能会丢失，因此maxPhysicalPosInLogicQueue可能比DLedgerCommitLog返回的maxOffset更大，请放手；
+             *
              * 3. Calculate the reput offset according to the consume queue;
+             * 根据消耗队列计算 从新写入的偏移位置
              * 4. Make sure the fall-behind messages to be dispatched before starting the commitlog, especially when the broker role are automatically changed.
+             * 在启动提交日志之前，尤其是在自动更改代理角色时，请确保要分派落后消息。
              */
             long maxPhysicalPosInLogicQueue = commitLog.getMinOffset();
             for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
@@ -416,12 +424,15 @@ public class DefaultMessageStore implements MessageStore {
             log.warn("putMessage message properties length too long " + msg.getPropertiesString().length());
             return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
         }
-
+        //如果系统io比较频繁，则时间间隔比较长。这个时候认为系统io负载高
         if (this.isOSPageCacheBusy()) {
             return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, null);
         }
 
         long beginTime = this.getSystemClock().now();
+        /**
+         * 存储消息-真正实现的地方
+         */
         PutMessageResult result = this.commitLog.putMessage(msg);
 
         long eclipseTime = this.getSystemClock().now() - beginTime;
@@ -431,6 +442,7 @@ public class DefaultMessageStore implements MessageStore {
         this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
 
         if (null == result || !result.isOk()) {
+            //记录文件存储失败的次数
             this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
         }
 

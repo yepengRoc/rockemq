@@ -252,9 +252,13 @@ public class MappedFile extends ReferenceResource {
         int currentPos = this.wrotePosition.get();
 
         if (currentPos < this.fileSize) {//文件未写满
+            //是否使用了临时存储池
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();//通过slice，生成一个新的ByteBuffer 但是和原来的bytebuffer共享内存
             byteBuffer.position(currentPos);//设置新bytebuffer的写位置
             AppendMessageResult result = null;
+            /**
+             * 进行信息追加
+             */
             if (messageExt instanceof MessageExtBrokerInner) {
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
             } else if (messageExt instanceof MessageExtBatch) {
@@ -433,7 +437,7 @@ public class MappedFile extends ReferenceResource {
         this.flushedPosition.set(pos);
     }
 
-    public boolean isFull() {
+    public boolean isFull() {//写指针的位置等于当前文件大小
         return this.fileSize == this.wrotePosition.get();
     }
 
@@ -548,9 +552,18 @@ public class MappedFile extends ReferenceResource {
         int flush = 0;
         long time = System.currentTimeMillis();
         for (int i = 0, j = 0; i < this.fileSize; i += MappedFile.OS_PAGE_SIZE, j++) {
+            /**
+             * //往申请的内存页中写入0
+             * 向操作系统申请内存的时候，并不一定就真的分配到了物理内存，
+             * 只有在真正使用的时候，系统才实时的给出要使用的内存。
+             * 对于长时间没有使用的内存，在内存不足的情况下，操作系统会把这部分内存置换到存储设备上，
+             * 当下次使用的时候，在将数据从存储设备上加载到内存中。
+             * mq这里写入0，申请到实际内存，然后通过mlock 锁定内存，使操作系统不允许置换
+             * 此部分内存
+             */
             byteBuffer.put(i, (byte) 0);
             // force flush when flush disk type is sync
-            if (type == FlushDiskType.SYNC_FLUSH) {
+            if (type == FlushDiskType.SYNC_FLUSH) {//同步刷新
                 if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
                     flush = i;
                     mappedByteBuffer.force();
@@ -558,7 +571,7 @@ public class MappedFile extends ReferenceResource {
             }
 
             // prevent gc
-            if (j % 1000 == 0) {
+            if (j % 1000 == 0) {//每执行1000个内存页就释放cpu的执行权，给其它线程执行的机会，当前线程进入准备状态，从新获取
                 log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
                 time = System.currentTimeMillis();
                 try {

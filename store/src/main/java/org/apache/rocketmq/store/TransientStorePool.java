@@ -87,7 +87,7 @@ public class TransientStorePool {
 
     public ByteBuffer borrowBuffer() {
         ByteBuffer buffer = availableBuffers.pollFirst();
-        if (availableBuffers.size() < poolSize * 0.4) {
+        if (availableBuffers.size() < poolSize * 0.4) {//可用容量小于%40的时候，会进行日志提醒
             log.warn("TransientStorePool only remain {} sheets.", availableBuffers.size());
         }
         return buffer;

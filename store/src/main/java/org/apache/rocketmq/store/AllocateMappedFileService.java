@@ -50,7 +50,9 @@ public class AllocateMappedFileService extends ServiceThread {
 
     public MappedFile putRequestAndReturnMappedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
         int canSubmitRequests = 2;
+        //堆内临时存储池
         if (this.messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+            //是主节点，且设置了快速失败。快速失败的前提是临时存储池没有可用空间了
             if (this.messageStore.getMessageStoreConfig().isFastFailIfNoBufferInStorePool()
                 && BrokerRole.SLAVE != this.messageStore.getMessageStoreConfig().getBrokerRole()) { //if broker is slave, don't fast fail even no buffer in pool
                 canSubmitRequests = this.messageStore.getTransientStorePool().remainBufferNumbs() - this.requestQueue.size();
@@ -93,7 +95,7 @@ public class AllocateMappedFileService extends ServiceThread {
             log.warn(this.getServiceName() + " service has exception. so return null");
             return null;
         }
-
+        //真正的创建文件
         AllocateRequest result = this.requestTable.get(nextFilePath);
         try {
             if (result != null) {
@@ -142,6 +144,7 @@ public class AllocateMappedFileService extends ServiceThread {
 
     /**
      * Only interrupted by the external thread, will return false
+     * 真正创建mmperfile的地方
      */
     private boolean mmapOperation() {
         boolean isSuccess = false;
@@ -164,7 +167,8 @@ public class AllocateMappedFileService extends ServiceThread {
                 long beginTime = System.currentTimeMillis();
 
                 MappedFile mappedFile;
-                if (messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+                if (messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {//如果使用了临时存储池，使用懒加载的方式
+                    //在真正需要存储的时候，才真正的去实例化
                     try {
                         mappedFile = ServiceLoader.load(MappedFile.class).iterator().next();
                         mappedFile.init(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
@@ -177,7 +181,7 @@ public class AllocateMappedFileService extends ServiceThread {
                 }
 
                 long eclipseTime = UtilAll.computeEclipseTimeMilliseconds(beginTime);
-                if (eclipseTime > 10) {
+                if (eclipseTime > 10) {//上面的创建步骤消耗超过了10毫秒
                     int queueSize = this.requestQueue.size();
                     log.warn("create mappedFile spent time(ms) " + eclipseTime + " queue size " + queueSize
                         + " " + req.getFilePath() + " " + req.getFileSize());
@@ -187,7 +191,8 @@ public class AllocateMappedFileService extends ServiceThread {
                 if (mappedFile.getFileSize() >= this.messageStore.getMessageStoreConfig()
                     .getMapedFileSizeCommitLog()
                     &&
-                    this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
+                    this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {//预热
+                    //文件预热
                     mappedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
                         this.messageStore.getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile());
                 }

@@ -30,8 +30,11 @@ public class Producer {
 
         /*
          * Instantiate with a producer group name.
+         * 实例化一个带有组名的生产者
          */
         DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
+
+        producer.setNamesrvAddr("127.0.0.1:9876");
 
         /*
          * Specify name server addresses.
@@ -43,14 +46,18 @@ public class Producer {
          * producer.setNamesrvAddr("name-server1-ip:9876;name-server2-ip:9876");
          * }
          * </pre>
+         * 指定name server 地址
+         * 可选操作，可以通过系统变量NAMESRV_ADDR 来指定navme  server地址
+         *
          */
 
         /*
          * Launch the instance.
+         * 启动实例
          */
         producer.start();
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 1; i++) {
             try {
 
                 /*

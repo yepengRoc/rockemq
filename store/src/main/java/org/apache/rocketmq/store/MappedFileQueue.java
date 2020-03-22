@@ -212,21 +212,29 @@ public class MappedFileQueue {
      * @param startOffset
      * @param needCreate
      * @return
+     * 获取一个mappedfile 默认大小是1G
      */
     public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {
         long createOffset = -1;
+        //获取list里面最后的一个队列。可能list为null,也可能有
         MappedFile mappedFileLast = getLastMappedFile();
 
         if (mappedFileLast == null) {
+            //从新计算一个文件的开头。例如 3.5 mod 1g之后是剩余的0.5 3.5-0.5 就是当前要创建文件的起始位置。
+            //暂时还不太清楚-可能恢复消息的时候也要用哪个
             createOffset = startOffset - (startOffset % this.mappedFileSize);
         }
-
+        //如果最后一个文件满了，则用最后一个文件的起始位置+ 系统设置的文件固定大小
         if (mappedFileLast != null && mappedFileLast.isFull()) {
             createOffset = mappedFileLast.getFileFromOffset() + this.mappedFileSize;
         }
-
+        /**
+         * 如果需要创建一个新的文件
+         */
         if (createOffset != -1 && needCreate) {
+            //以当前偏移量为文件名
             String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
+            //同时创建下下个文件
             String nextNextFilePath = this.storePath + File.separator
                 + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
             MappedFile mappedFile = null;

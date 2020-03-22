@@ -177,7 +177,7 @@ public class BrokerStartup {
                 default:
                     break;
             }
-
+            //高可用，主从通信端口
             messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
             LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();

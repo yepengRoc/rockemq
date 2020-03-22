@@ -30,6 +30,7 @@ public class NettyClientConfig {
     /**
      * IdleStateEvent will be triggered when neither read nor write was performed for
      * the specified period of this time. Specify {@code 0} to disable
+     * 如果在指定的时间内没有执行读写操作，则IdleStateEvent将被触发。指定{@code 0}以禁用
      */
     private int clientChannelMaxIdleTimeSeconds = 120;
 

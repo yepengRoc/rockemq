@@ -7,6 +7,7 @@ import java.util.PriorityQueue;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.SynchronousQueue;
 
 public class CollectSourceSty {
     /**
@@ -105,6 +106,9 @@ public class CollectSourceSty {
 
     }
     public void SynchronousQueueSty(){
+        SynchronousQueue<Integer> que = new SynchronousQueue<>();
+        que.add(1);
+        que.remove(1);
 
     }
     public void PriorityBlockingQueueSty(){

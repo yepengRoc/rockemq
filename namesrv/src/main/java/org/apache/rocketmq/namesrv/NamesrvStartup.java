@@ -69,6 +69,7 @@ public class NamesrvStartup {
     }
 
     public static NamesrvController createNamesrvController(String[] args) throws IOException, JoranException {
+        //把当前mq的版本号设置到系统变量里
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         //PackageConflictDetect.detectFastjson();
 
