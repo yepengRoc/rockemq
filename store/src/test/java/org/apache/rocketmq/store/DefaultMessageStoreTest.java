@@ -33,6 +33,9 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -112,11 +115,12 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxHashSlotNum(10000);
         messageStoreConfig.setMaxIndexNum(100 * 100);*/
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 10);//一个文件大小是10k
-        messageStoreConfig.setMapedFileSizeConsumeQueue(256);//一个consumer文件大小
+        messageStoreConfig.setMapedFileSizeConsumeQueue(256);//一个consumer文件大小 256k 就切换一个
         messageStoreConfig.setMaxHashSlotNum(10);
         messageStoreConfig.setMaxIndexNum(200);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
-        messageStoreConfig.setFlushIntervalConsumeQueue(1);//刷盘间隔
+        messageStoreConfig.setFlushIntervalConsumeQueue(1);//刷盘间隔 comsumequeue
+        //默认落盘
         return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
     }
 
@@ -124,16 +128,17 @@ public class DefaultMessageStoreTest {
      * 写消息和读消息
      */
     @Test
-    public void testWriteAndRead() {
+    public void testWriteAndRead() throws Exception{
        /* long totalMsgs = 10;
         QUEUE_TOTAL = 1;*/
-        long totalMsgs = 1;//1 1000
+        long totalMsgs = 1000;//1 1000
         QUEUE_TOTAL = 8;
         MessageBody = StoreMessage.getBytes();
         for (long i = 0; i < totalMsgs; i++) {
             messageStore.putMessage(buildMessage());
         }
 
+        Thread.sleep(2000L);
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
 
         for (long i = 0; i < totalMsgs; i++) {
@@ -414,6 +419,12 @@ public class DefaultMessageStoreTest {
         }
     }
 
+    /**
+     * 构建消息
+     * @param messageBody
+     * @param topic
+     * @return
+     */
     private MessageExtBrokerInner buildMessage(byte[] messageBody, String topic) {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic(topic);
@@ -426,6 +437,11 @@ public class DefaultMessageStoreTest {
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(StoreHost);
         msg.setBornHost(BornHost);
+
+//        BornHost/**/int keyIndex = KeyMock.getA
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_KEYS,Integer.toString(0));
+        //只有设置了此。properties才生效
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         return msg;
     }
 

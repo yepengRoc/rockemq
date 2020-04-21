@@ -48,17 +48,33 @@ public class AllocateMappedFileService extends ServiceThread {
         this.messageStore = messageStore;
     }
 
+    /**
+     * 创建两个映射文件
+     * @param nextFilePath
+     * @param nextNextFilePath
+     * @param fileSize
+     * @return
+     */
     public MappedFile putRequestAndReturnMappedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
-        int canSubmitRequests = 2;
+        int canSubmitRequests = 2;//默认处理两个请求
         //堆内临时存储池
+        /**
+         * 映射文件创建有两种方式
+         * transientStorePoolEnable 为true,flushdisktype为 ASYNC_FLUSH,并且broker为主节点是，才启用transientStorePool
+         * 同时在启用快速失败策略时，计算transientStorePool中剩余的buffer数量减去requestqueue中待分配的数量后，
+         * 剩余buffer数量如果小于等于
+         */
         if (this.messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             //是主节点，且设置了快速失败。快速失败的前提是临时存储池没有可用空间了
             if (this.messageStore.getMessageStoreConfig().isFastFailIfNoBufferInStorePool()
                 && BrokerRole.SLAVE != this.messageStore.getMessageStoreConfig().getBrokerRole()) { //if broker is slave, don't fast fail even no buffer in pool
                 canSubmitRequests = this.messageStore.getTransientStorePool().remainBufferNumbs() - this.requestQueue.size();
+                //有可用buffer
             }
         }
-
+        /**
+         * 第一个请求处理
+         */
         AllocateRequest nextReq = new AllocateRequest(nextFilePath, fileSize);
         boolean nextPutOK = this.requestTable.putIfAbsent(nextFilePath, nextReq) == null;
 
@@ -75,7 +91,7 @@ public class AllocateMappedFileService extends ServiceThread {
             }
             canSubmitRequests--;
         }
-
+        //第二个请求处理。如果pool中只剩一个可用buffer，则第二个就不处理了
         AllocateRequest nextNextReq = new AllocateRequest(nextNextFilePath, fileSize);
         boolean nextNextPutOK = this.requestTable.putIfAbsent(nextNextFilePath, nextNextReq) == null;
         if (nextNextPutOK) {
@@ -96,9 +112,14 @@ public class AllocateMappedFileService extends ServiceThread {
             return null;
         }
         //真正的创建文件
+        /**
+         * 这里为什么又要get下。
+         *
+         *
+         */
         AllocateRequest result = this.requestTable.get(nextFilePath);
         try {
-            if (result != null) {
+            if (result != null) {//等待服务线程创建
                 boolean waitOK = result.getCountDownLatch().await(waitTimeOut, TimeUnit.MILLISECONDS);
                 if (!waitOK) {
                     log.warn("create mmap timeout " + result.getFilePath() + " " + result.getFileSize());
@@ -136,7 +157,7 @@ public class AllocateMappedFileService extends ServiceThread {
     public void run() {
         log.info(this.getServiceName() + " service started");
 
-        while (!this.isStopped() && this.mmapOperation()) {
+        while (!this.isStopped() && this.mmapOperation()) {//死循环创建文件
 
         }
         log.info(this.getServiceName() + " service end");
@@ -165,7 +186,7 @@ public class AllocateMappedFileService extends ServiceThread {
 
             if (req.getMappedFile() == null) {
                 long beginTime = System.currentTimeMillis();
-
+                //创建逻辑
                 MappedFile mappedFile;
                 if (messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {//如果使用了临时存储池，使用懒加载的方式
                     //在真正需要存储的时候，才真正的去实例化
@@ -193,6 +214,9 @@ public class AllocateMappedFileService extends ServiceThread {
                     &&
                     this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {//预热
                     //文件预热
+                    /**
+                     * 文件预热
+                     */
                     mappedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
                         this.messageStore.getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile());
                 }

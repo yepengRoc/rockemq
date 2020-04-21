@@ -115,6 +115,7 @@ public class IndexFile {
         //索引文件未写满
         if (this.indexHeader.getIndexCount() < this.indexNum) {
             int keyHash = indexKeyHashMethod(key);
+            //hash的位置
             int slotPos = keyHash % this.hashSlotNum;
             //头文件40字节，加上
             int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize;
@@ -127,6 +128,7 @@ public class IndexFile {
                 // false);
                 /**
                  * 读取hash槽存储的数据，如果数据<0或 大于当前索引文件中的索引条目格式（计算出的索引值大于已经使用的最大索引值）
+                 * 如果hash冲突，则构建linklist
                  */
                 int slotValue = this.mappedByteBuffer.getInt(absSlotPos);
                 if (slotValue <= invalidIndex || slotValue > this.indexHeader.getIndexCount()) {
@@ -147,16 +149,19 @@ public class IndexFile {
                 } else if (timeDiff < 0) {
                     timeDiff = 0;
                 }
-
+                //计算索引数据需要放在哪个位置
                 int absIndexPos =
                     IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * hashSlotSize
                         + this.indexHeader.getIndexCount() * indexSize;
-
+                //根据topic-keys 或者topic-uniqueKey计算hash值
                 this.mappedByteBuffer.putInt(absIndexPos, keyHash);
+                //message在commitlog中的位置
                 this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset);
+                //落地时间 - 当前文件的起始时间
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);
+                //在索引数据域把刚才有冲突的hash桶的位置记录下来，这样就构建了一个linklist
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue);
-
+                //更新hash的索引位置，如果有冲突，已记录下来
                 this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount());
 
                 if (this.indexHeader.getIndexCount() <= 1) {

@@ -53,7 +53,7 @@ public class Producer {
 
         /*
          * Launch the instance.
-         * 启动实例
+         * 启动生产者实例
          */
         producer.start();
 

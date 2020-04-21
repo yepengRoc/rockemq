@@ -148,7 +148,7 @@ public class DefaultMessageStore implements MessageStore {
         this.messageStoreConfig = messageStoreConfig;//message配置
         this.brokerStatsManager = brokerStatsManager;
         //分配服务
-        this.allocateMappedFileService = new AllocateMappedFileService(this);//线程
+        this.allocateMappedFileService = new AllocateMappedFileService(this);//线程  -用于创建 mappedfile文件
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             this.commitLog = new DLedgerCommitLog(this);
         } else {
@@ -156,7 +156,7 @@ public class DefaultMessageStore implements MessageStore {
         }
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
 
-        this.flushConsumeQueueService = new FlushConsumeQueueService();//线程
+        this.flushConsumeQueueService = new FlushConsumeQueueService();//线程  刷盘线程
         this.cleanCommitLogService = new CleanCommitLogService();
         this.cleanConsumeQueueService = new CleanConsumeQueueService();
         this.storeStatsService = new StoreStatsService();//线程
@@ -166,7 +166,7 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.haService = null;
         }
-        this.reputMessageService = new ReputMessageService();//线程
+        this.reputMessageService = new ReputMessageService();//线程--- 构建 consumequeue和index文件的
 
         this.scheduleMessageService = new ScheduleMessageService(this);
 
@@ -389,12 +389,17 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /**
+     * 处理消息存储.
+     * @param msg Message instance to store
+     * @return
+     */
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
         if (this.shutdown) {
             log.warn("message store has shutdown, so putMessage is forbidden");
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
-
+        //slave 不处理客户端发过来的消息
         if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
@@ -403,7 +408,9 @@ public class DefaultMessageStore implements MessageStore {
 
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
-
+        /**
+         * 是否可写。， 控制是否可写
+         */
         if (!this.runningFlags.isWriteable()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
@@ -414,18 +421,22 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.printTimes.set(0);
         }
-
+        //topic长度限制
         if (msg.getTopic().length() > Byte.MAX_VALUE) {
             log.warn("putMessage message topic length too long " + msg.getTopic().length());
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
-
+        //propertis
         if (msg.getPropertiesString() != null && msg.getPropertiesString().length() > Short.MAX_VALUE) {
             log.warn("putMessage message properties length too long " + msg.getPropertiesString().length());
             return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
         }
         //如果系统io比较频繁，则时间间隔比较长。这个时候认为系统io负载高
+        /**
+         * 大量的内存和磁盘在做交换
+         */
         if (this.isOSPageCacheBusy()) {
+            //返回忙。不能发消息
             return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, null);
         }
 
@@ -507,6 +518,9 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public boolean isOSPageCacheBusy() {
+        /**
+         *
+         */
         long begin = this.getCommitLog().getBeginTimeInLock();
         long diff = this.systemClock.now() - begin;
 
@@ -1459,7 +1473,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void doDispatch(DispatchRequest req) {
-        for (CommitLogDispatcher dispatcher : this.dispatcherList) {
+        for (CommitLogDispatcher dispatcher : this.dispatcherList) {//comsume 和index构建
             dispatcher.dispatch(req);
         }
     }
@@ -1851,6 +1865,9 @@ public class DefaultMessageStore implements MessageStore {
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
 
+        /**
+         * 构建cosumequeue的地方
+         */
         private void doReput() {
             if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
                 log.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
@@ -1863,7 +1880,11 @@ public class DefaultMessageStore implements MessageStore {
                     && this.reputFromOffset >= DefaultMessageStore.this.getConfirmOffset()) {
                     break;
                 }
-
+                /**
+                 * 主要是构建consumequeue和index
+                 * rePutfromoffet:构建过consumequeue/index的进度
+                 * result存储的是已经经过刷盘的commitlog的进度-reputfromoffset,就是可以构建comsumequeue/index的message
+                 */
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {

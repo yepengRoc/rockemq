@@ -119,6 +119,13 @@ public class MappedFile extends ReferenceResource {
         init(fileName, fileSize);
     }
 
+    /**
+     *
+     * @param fileName
+     * @param fileSize
+     * @param transientStorePool  通过此参数去创建。
+     * @throws IOException
+     */
     public MappedFile(final String fileName, final int fileSize,
         final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize, transientStorePool);
@@ -192,7 +199,7 @@ public class MappedFile extends ReferenceResource {
     public void init(final String fileName, final int fileSize,
         final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize);
-        this.writeBuffer = transientStorePool.borrowBuffer();
+        this.writeBuffer = transientStorePool.borrowBuffer();//堆外内存池获取一个buffer。不支持扩容。如果满了。
         this.transientStorePool = transientStorePool;
     }
 
@@ -248,24 +255,31 @@ public class MappedFile extends ReferenceResource {
     public AppendMessageResult appendMessagesInner(final MessageExt messageExt, final AppendMessageCallback cb) {
         assert messageExt != null;
         assert cb != null;
-
+        /**
+         *
+         */
+        //获取写的位置
         int currentPos = this.wrotePosition.get();
 
         if (currentPos < this.fileSize) {//文件未写满
-            //是否使用了临时存储池
+            //是否使用了临时存储池。和同步刷盘还是一部刷盘有关  异步还是同步
+            /**
+             * 启用 transientStorPoll时 writeBuffer 不为空
+             */
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();//通过slice，生成一个新的ByteBuffer 但是和原来的bytebuffer共享内存
             byteBuffer.position(currentPos);//设置新bytebuffer的写位置
             AppendMessageResult result = null;
             /**
              * 进行信息追加
              */
-            if (messageExt instanceof MessageExtBrokerInner) {
+            if (messageExt instanceof MessageExtBrokerInner) {//单个消息处理
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
-            } else if (messageExt instanceof MessageExtBatch) {
+            } else if (messageExt instanceof MessageExtBatch) {//批量消息处理
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBatch) messageExt);
             } else {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
+            //刷新写入位置。写入信息到os_cache
             this.wrotePosition.addAndGet(result.getWroteBytes());
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
@@ -546,6 +560,13 @@ public class MappedFile extends ReferenceResource {
         this.committedPosition.set(pos);
     }
 
+    /**
+     * 对当前映射文件的每个内存页写入一个字节0，当刷盘策略为同步刷盘，执行强制刷盘，并且是没修改pages个分页刷一次盘
+     * 然后将当前映射文件全部的地址空间锁定在物理内存中，放置被交换到swap空间
+     * 再次调用madvise,传入WILL_NEED策略，将刚刚锁住的内存预热，告知内核将要使用WILL_NEED这块内存，先做虚拟内存到物理内存的映射
+     * @param type
+     * @param pages
+     */
     public void warmMappedFile(FlushDiskType type, int pages) {
         long beginTime = System.currentTimeMillis();
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
@@ -570,7 +591,7 @@ public class MappedFile extends ReferenceResource {
                 }
             }
 
-            // prevent gc
+            // prevent gc linux是时间片分配 windows是抢占式。如果占用会一直占用。这里一次刷4k 刷1g可能会占用很久
             if (j % 1000 == 0) {//每执行1000个内存页就释放cpu的执行权，给其它线程执行的机会，当前线程进入准备状态，从新获取
                 log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
                 time = System.currentTimeMillis();
@@ -618,6 +639,11 @@ public class MappedFile extends ReferenceResource {
         this.firstCreateInQueue = firstCreateInQueue;
     }
 
+    /**ko
+     * 将当前映射文件的全部地址空间锁定在物理内存中，放置其被交换到swap空间
+     * madbice
+     * 计算机上有很多线程，都会使用内存,内存不够的时候，会置换到磁盘上
+     */
     public void mlock() {
         final long beginTime = System.currentTimeMillis();
         final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();

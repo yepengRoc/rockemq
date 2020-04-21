@@ -42,7 +42,7 @@ public class MappedFileQueue {
      * 单个存储文件大小
      */
     private final int mappedFileSize;
-
+    //如何实现
     private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
     /**
      * 创建mappedfile服务类
@@ -160,6 +160,13 @@ public class MappedFileQueue {
         }
     }
 
+    /**
+     * broker启动的时候 会调用这个方法。
+     * 对mappedfilequeue中的mappedfile进行初始化
+     * 首先根据文件名称对commitlog中文件升序排序，然后丢弃大小不为mappedfilesize的文件及后续文件（
+     * 如果更改了文件大小配置，则需要从新构建文件。因为需要从新构建，所以之后的文件也会丢弃）
+     * @return
+     */
     public boolean load() {
         File dir = new File(this.storePath);
         File[] files = dir.listFiles();
@@ -210,7 +217,7 @@ public class MappedFileQueue {
     /**
      * mapperfile size 默认 1g = 1024*1024*1024 B
      * @param startOffset
-     * @param needCreate
+     * @param needCreate 为true 则在没有可用mappedfile的时候创建
      * @return
      * 获取一个mappedfile 默认大小是1G
      */
@@ -222,10 +229,19 @@ public class MappedFileQueue {
         if (mappedFileLast == null) {
             //从新计算一个文件的开头。例如 3.5 mod 1g之后是剩余的0.5 3.5-0.5 就是当前要创建文件的起始位置。
             //暂时还不太清楚-可能恢复消息的时候也要用哪个
+            /**
+             * 计算将要创建映射文件的物理偏移量
+             * 如果指定的startoffset不足mappedFileSize，则从offset 0 开始
+             * 否则，从为mappedFilesize整数倍的offset开始
+             */
             createOffset = startOffset - (startOffset % this.mappedFileSize);
         }
         //如果最后一个文件满了，则用最后一个文件的起始位置+ 系统设置的文件固定大小
         if (mappedFileLast != null && mappedFileLast.isFull()) {
+            /**
+             * 计算将要创建映射文件的物理偏移量
+             * 偏移量等于 上一个commitlog文件的起始偏移量+commitlog文件大小
+             */
             createOffset = mappedFileLast.getFileFromOffset() + this.mappedFileSize;
         }
         /**
@@ -238,7 +254,10 @@ public class MappedFileQueue {
             String nextNextFilePath = this.storePath + File.separator
                 + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
             MappedFile mappedFile = null;
-
+            /**
+             * 优先使用allocateMappedFileService 创建映射文件，因为是预分配方式，性能很高
+             * 如果上述分配失败，则使用new创建
+             */
             if (this.allocateMappedFileService != null) {
                 mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
                     nextNextFilePath, this.mappedFileSize);
@@ -267,12 +286,16 @@ public class MappedFileQueue {
         return getLastMappedFile(startOffset, true);
     }
 
+    /**
+     * 映射文件获取
+     * @return
+     */
     public MappedFile getLastMappedFile() {
         MappedFile mappedFileLast = null;
 
         while (!this.mappedFiles.isEmpty()) {
             try {
-                mappedFileLast = this.mappedFiles.get(this.mappedFiles.size() - 1);
+                mappedFileLast = this.mappedFiles.get(this.mappedFiles.size() - 1);//获取最后一个mappedfile
                 break;
             } catch (IndexOutOfBoundsException e) {
                 //continue;

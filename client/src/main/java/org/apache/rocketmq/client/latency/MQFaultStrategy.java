@@ -56,7 +56,14 @@ public class MQFaultStrategy {
         this.sendLatencyFaultEnable = sendLatencyFaultEnable;
     }
 
+    /**
+     * 查找发送消息的队列
+     * @param tpInfo
+     * @param lastBrokerName
+     * @return
+     */
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
+        //开启了高可用
         if (this.sendLatencyFaultEnable) {//延迟故障 开启
             try {
                 int index = tpInfo.getSendWhichQueue().getAndIncrement();

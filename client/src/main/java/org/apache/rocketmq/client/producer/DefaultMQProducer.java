@@ -81,7 +81,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * </p>
      *
      * See {@linktourl http://rocketmq.apache.org/docs/core-concept/} for more discussion.
-     * 生产者所属组
+     * 生产者所属组-查看在什么时候获取
      */
     private String producerGroup;//生产者所属组
 

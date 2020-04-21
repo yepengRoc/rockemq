@@ -29,6 +29,12 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
 
     private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex();
 
+    /**
+     * 放信息
+     * @param name
+     * @param currentLatency
+     * @param notAvailableDuration
+     */
     @Override
     public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {
         FaultItem old = this.faultItemTable.get(name);
@@ -48,9 +54,14 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
     }
 
+    /**
+     * 队列是否可用
+     * @param name
+     * @return
+     */
     @Override
     public boolean isAvailable(final String name) {
-        final FaultItem faultItem = this.faultItemTable.get(name);
+        final FaultItem faultItem = this.faultItemTable.get(name);//看下这个值什么时候放进去的
         if (faultItem != null) {
             return faultItem.isAvailable();
         }

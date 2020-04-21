@@ -159,8 +159,19 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         return response;
     }
 
+    /**
+     * 消息检测
+     * @param ctx
+     * @param requestHeader
+     * @param response
+     * @return
+     */
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
         final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+        /**
+         * topic的权限。通过权限控制，禁用读写，rocketmq运维的时候有用。
+         * 扩容的时候可以禁用读写。扩容完之后再恢复
+         */
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
@@ -170,6 +181,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         }
         /**
          * 默认主题不能进行消息发送，仅仅提供路由查找
+         * topicn能否发送信息
          */
         if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
             String errorMsg = "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
@@ -178,12 +190,17 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             response.setRemark(errorMsg);
             return response;
         }
-
+        /**
+         * 查找topic的配置
+         */
         TopicConfig topicConfig =
             this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
             int topicSysFlag = 0;
             if (requestHeader.isUnitMode()) {
+                /**
+                 * 消息重试也是通过发消息来实现的
+                 */
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
                 } else {
@@ -192,6 +209,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             }
 
             log.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
+            /**
+             * 创建topic
+             */
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(
                 requestHeader.getTopic(),
                 requestHeader.getDefaultTopic(),

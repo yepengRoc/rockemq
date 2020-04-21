@@ -220,6 +220,7 @@ public class IndexService {
             }
 
             if (req.getUniqKey() != null) {
+                //uniqkey是客户端生成的messageid，也来源于message的properties
                 indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
                 if (indexFile == null) {
                     log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
