@@ -154,10 +154,18 @@ public abstract class NettyRemotingAbstract {
         final RemotingCommand cmd = msg;
         if (cmd != null) {
             switch (cmd.getType()) {
+                /**
+                 * 事务消息的回查
+                 * consumer 或broker 实例发生变化，或者队列的变更
+                 * 通知消费者
+                 */
                 case REQUEST_COMMAND:
                     //netty通信，处理请求
                     processRequestCommand(ctx, cmd);
                     break;
+                /**
+                 * 发送消息
+                 */
                 case RESPONSE_COMMAND:
                     processResponseCommand(ctx, cmd);
                     break;
@@ -288,10 +296,16 @@ public abstract class NettyRemotingAbstract {
             responseFuture.setResponseCommand(cmd);
 
             responseTable.remove(opaque);
-
+            /**
+             * 如果包含callback --说明是异步发送模式。执行回调
+             */
             if (responseFuture.getInvokeCallback() != null) {
                 executeInvokeCallback(responseFuture);
             } else {
+                /**
+                 * 同步操作
+                 * 放回执行结果
+                 */
                 responseFuture.putResponse(cmd);
                 responseFuture.release();
             }
@@ -306,7 +320,7 @@ public abstract class NettyRemotingAbstract {
      */
     private void executeInvokeCallback(final ResponseFuture responseFuture) {
         boolean runInThisThread = false;
-        ExecutorService executor = this.getCallbackExecutor();
+        ExecutorService executor = this.getCallbackExecutor();//配置线程池或者用公共线程池
         if (executor != null) {
             try {
                 executor.submit(new Runnable() {
@@ -328,9 +342,15 @@ public abstract class NettyRemotingAbstract {
         } else {
             runInThisThread = true;
         }
-
+        /**
+         * 如果线程池拒绝了。则在当前线程里进行执行回调 TODO
+         * 用来兜底用
+         */
         if (runInThisThread) {
             try {
+                /**
+                 * 进入callback 方法 查看 TODO
+                 */
                 responseFuture.executeInvokeCallback();
             } catch (Throwable e) {
                 log.warn("executeInvokeCallback Exception", e);
@@ -404,10 +424,13 @@ public abstract class NettyRemotingAbstract {
     public RemotingCommand invokeSyncImpl(final Channel channel, final RemotingCommand request,
         final long timeoutMillis)
         throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException {
-        final int opaque = request.getOpaque();
+        final int opaque = request.getOpaque();//每个请求的唯一标识。只能在一个jvm实例中唯一
 
         try {
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis, null, null);
+            /**
+             * 可以发送很多请求。根据opaque 决定相应后的处理顺序
+             */
             this.responseTable.put(opaque, responseFuture);
             final SocketAddress addr = channel.remoteAddress();
             channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
@@ -422,11 +445,16 @@ public abstract class NettyRemotingAbstract {
 
                     responseTable.remove(opaque);
                     responseFuture.setCause(f.cause());
+                    /**
+                     * 在回调里面对 responseFuture.waitResponse(timeoutMillis); 中的等待进行唤醒
+                     */
                     responseFuture.putResponse(null);
                     log.warn("send a request command to channel <" + addr + "> failed.");
                 }
             });
-
+            /**
+             * 阻塞式等待
+             */
             RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis);
             if (null == responseCommand) {
                 if (responseFuture.isSendRequestOK()) {
@@ -467,6 +495,9 @@ public abstract class NettyRemotingAbstract {
                             responseFuture.setSendRequestOK(true);
                             return;
                         }
+                        /**
+                         * 请求失败的时候-执行fail 操作 TODO
+                         */
                         requestFail(opaque);
                         log.warn("send a request command to channel <{}> failed.", RemotingHelper.parseChannelRemoteAddr(channel));
                     }
@@ -509,6 +540,7 @@ public abstract class NettyRemotingAbstract {
 
     /**
      * mark the request of the specified channel as fail and to invoke fail callback immediately
+     * 标记channel上连接的失败
      * @param channel the channel which is close already
      */
     protected void failFast(final Channel channel) {

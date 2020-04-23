@@ -75,6 +75,12 @@ public class MQFaultStrategy {
                     if (latencyFaultTolerance.isAvailable(mq.getBrokerName())) {//如果获取的当前broker不在失败队列中
                         if (null == lastBrokerName || mq.getBrokerName().equals(lastBrokerName))
                             return mq;
+                        /**
+                         * 逻辑错误
+                         * mq.getBrokerName().equals(lastBrokerName)  应该是 不等于
+                         * if (null == lastBrokerName || !mq.getBrokerName().equals(lastBrokerName))
+                         *                             return mq;
+                         */
                     }
                 }
                 //如果不可用
@@ -100,6 +106,12 @@ public class MQFaultStrategy {
         return tpInfo.selectOneMessageQueue(lastBrokerName);
     }
 
+    /**
+     * 如果 写超时时间是2000 ，整体的超时时间都应该小于2000 ，如果latencyFaultTolerance 中配置大于2000的将没有效果
+     * @param brokerName
+     * @param currentLatency
+     * @param isolation
+     */
     public void updateFaultItem(final String brokerName, final long currentLatency, boolean isolation) {
         if (this.sendLatencyFaultEnable) {//默认使用30秒来计算规避时间。如果isolation 为fasle则使用当前 时间来计算
             long duration = computeNotAvailableDuration(isolation ? 30000 : currentLatency);

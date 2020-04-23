@@ -32,6 +32,8 @@ public class TopicPublishInfo {
     private boolean haveTopicRouterInfo = false;
     /**
      * 改主题队列的消息队列
+     * topic 配置
+     * 读写队列的数量
      */
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
     /**
@@ -94,6 +96,9 @@ public class TopicPublishInfo {
                 if (pos < 0)
                     pos = 0;
                 MessageQueue mq = this.messageQueueList.get(pos);
+                /**
+                 * 屏蔽掉上次失败的broker  channelTable
+                 */
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
                 }
@@ -103,7 +108,13 @@ public class TopicPublishInfo {
     }
 
     public MessageQueue selectOneMessageQueue() {
+        /**
+         * 封装了一个 threadlocal 里面存了一个index的值，这个值在初始化话的时候，随机一个整数
+         */
         int index = this.sendWhichQueue.getAndIncrement();
+        /**
+         * 这里为什么会小于0
+         */
         int pos = Math.abs(index) % this.messageQueueList.size();
         if (pos < 0)
             pos = 0;

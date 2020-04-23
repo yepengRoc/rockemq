@@ -716,11 +716,11 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
         /**
-         * 数据落盘  同步刷盘还是异步刷盘
+         * 数据落盘  同步刷盘还是异步刷盘 TODO
          */
         handleDiskFlush(result, putMessageResult, msg);
         /**
-         * ha主从操作  主从同步
+         * ha主从操作  主从同步  TODO
          */
         handleHA(result, putMessageResult, msg);
 

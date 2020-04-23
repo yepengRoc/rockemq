@@ -61,6 +61,11 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
      */
     @Override
     public boolean isAvailable(final String name) {
+        /**
+         * 失败的时候 会计算一个下一个可用的时间点，
+         * 这里可用，用当前时间跟计算的这个可用时间进行比较
+         * 达到可用时间点，则可以发送
+         */
         final FaultItem faultItem = this.faultItemTable.get(name);//看下这个值什么时候放进去的
         if (faultItem != null) {
             return faultItem.isAvailable();

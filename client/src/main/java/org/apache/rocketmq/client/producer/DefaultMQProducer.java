@@ -705,6 +705,15 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         return this.defaultMQProducerImpl.queryMessageByUniqKey(topic, msgId);
     }
 
+    /**
+     * 批量发送消息 TODO
+     * @param msgs
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     @Override
     public SendResult send(
         Collection<Message> msgs) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {

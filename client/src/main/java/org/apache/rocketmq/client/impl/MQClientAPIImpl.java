@@ -369,6 +369,18 @@ public class MQClientAPIImpl {
         return null;
     }
 
+    /**
+     * 同步发送消息 TODO
+     * @param addr
+     * @param brokerName
+     * @param msg
+     * @param timeoutMillis
+     * @param request
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     private SendResult sendMessageSync(
         final String addr,
         final String brokerName,
@@ -416,6 +428,9 @@ public class MQClientAPIImpl {
 
                 if (response != null) {
                     try {
+                        /**
+                         * 处理结果 TODO
+                         */
                         SendResult sendResult = MQClientAPIImpl.this.processSendResponse(brokerName, msg, response);
                         assert sendResult != null;
                         if (context != null) {
@@ -423,7 +438,7 @@ public class MQClientAPIImpl {
                             context.getProducer().executeSendMessageHookAfter(context);
                         }
 
-                        try {
+                        try {//成功回调 ToDO
                             sendCallback.onSuccess(sendResult);
                         } catch (Throwable e) {
                         }
@@ -431,10 +446,16 @@ public class MQClientAPIImpl {
                         producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), false);
                     } catch (Exception e) {
                         producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), true);
+                        /**
+                         * 异常实现 重试 TODO
+                         */
                         onExceptionImpl(brokerName, msg, 0L, request, sendCallback, topicPublishInfo, instance,
                             retryTimesWhenSendFailed, times, e, context, false, producer);
                     }
                 } else {
+                    /**
+                     * 异步发送 在这里进行重试 TODO
+                     */
                     producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), true);
                     if (!responseFuture.isSendRequestOK()) {
                         MQClientException ex = new MQClientException("send request failed", responseFuture.getCause());
@@ -483,7 +504,7 @@ public class MQClientAPIImpl {
                 request.setOpaque(RemotingCommand.createNewRequestId());
                 sendMessageAsync(addr, retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
                     timesTotal, curTimes, context, producer);
-            } catch (InterruptedException e1) {
+            } catch (InterruptedException e1) {//如果异常则递归重试
                 onExceptionImpl(retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
                     context, false, producer);
             } catch (RemotingConnectException e1) {

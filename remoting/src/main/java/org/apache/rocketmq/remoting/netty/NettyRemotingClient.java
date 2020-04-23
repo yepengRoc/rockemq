@@ -184,7 +184,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         new NettyEncoder(),
                         new NettyDecoder(),
                         new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
-                        new NettyConnectManageHandler(),
+                            /**
+                             * 双通道 TODO
+                             */
+                            new NettyConnectManageHandler(),
+                        //这个需要看下 TODO
                         new NettyClientHandler());
                 }
             });
@@ -377,6 +381,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 if (timeoutMillis < costTime) {
                     throw new RemotingTimeoutException("invokeSync call timeout");
                 }
+                /**
+                 * 真正发送消息的地方
+                 */
                 RemotingCommand response = this.invokeSyncImpl(channel, request, timeoutMillis - costTime);
                 doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(channel), request, response);
                 return response;
@@ -668,12 +675,21 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             log.info("NETTY CLIENT PIPELINE: CLOSE {}", remoteAddress);
             closeChannel(ctx.channel());
             super.close(ctx, promise);
+            /**
+             * 对要关闭chnnel上的连接置为失败
+             */
             NettyRemotingClient.this.failFast(ctx.channel());
             if (NettyRemotingClient.this.channelEventListener != null) {
                 NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.CLOSE, remoteAddress, ctx.channel()));
             }
         }
 
+        /**
+         * 管道空闲 则进行关闭
+         * @param ctx
+         * @param evt
+         * @throws Exception
+         */
         @Override
         public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
             if (evt instanceof IdleStateEvent) {
@@ -681,6 +697,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 if (event.state().equals(IdleState.ALL_IDLE)) {
                     final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
                     log.warn("NETTY CLIENT PIPELINE: IDLE exception [{}]", remoteAddress);
+                    //关闭 TODO
                     closeChannel(ctx.channel());
                     if (NettyRemotingClient.this.channelEventListener != null) {
                         NettyRemotingClient.this

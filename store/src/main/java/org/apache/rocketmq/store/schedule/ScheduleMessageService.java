@@ -129,7 +129,9 @@ public class ScheduleMessageService extends ConfigManager {
                 if (null == offset) {
                     offset = 0L;
                 }
-
+                /**
+                 * 为每个队列初始化一个定时任务 TODO
+                 */
                 if (timeDelay != null) {
                     this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME);
                 }
@@ -192,6 +194,11 @@ public class ScheduleMessageService extends ConfigManager {
         }
     }
 
+    /**
+     * 序列化到磁盘
+     * @param prettyFormat
+     * @return
+     */
     public String encode(final boolean prettyFormat) {
         DelayOffsetSerializeWrapper delayOffsetSerializeWrapper = new DelayOffsetSerializeWrapper();
         delayOffsetSerializeWrapper.setOffsetTable(this.offsetTable);
@@ -243,7 +250,7 @@ public class ScheduleMessageService extends ConfigManager {
         public void run() {
             try {
                 if (isStarted()) {
-                    this.executeOnTimeup();
+                    this.executeOnTimeup();//到时间了
                 }
             } catch (Exception e) {
                 // XXX: warn and notify me
@@ -364,6 +371,9 @@ public class ScheduleMessageService extends ConfigManager {
                                     }
                                 }
                             } else {
+                                /**
+                                 * 未到时间。则使用countdown 做一个延时
+                                 */
                                 ScheduleMessageService.this.timer.schedule(
                                     new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
                                     countdown);
@@ -392,7 +402,10 @@ public class ScheduleMessageService extends ConfigManager {
                     }
                 }
             } // end of if (cq != null)
-
+            /**
+             * 就算是当前没有任何消息。也会发起一个调度 TODO
+             * 尽量早的发现消息
+             */
             ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(this.delayLevel,
                 failScheduleOffset), DELAY_FOR_A_WHILE);
         }

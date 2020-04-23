@@ -214,7 +214,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             default:
                 break;
         }
-
+        //发送心跳
         this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
     }
 
@@ -518,6 +518,18 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.mqFaultStrategy.updateFaultItem(brokerName, currentLatency, isolation);
     }
 
+    /**
+     * 真正发送 消息的地方 TODO
+     * @param msg
+     * @param communicationMode
+     * @param sendCallback
+     * @param timeout
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     private SendResult sendDefaultImpl(
         Message msg,
         final CommunicationMode communicationMode,
@@ -535,6 +547,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
          * 查找具体的broker信息。获取主体的路由信息。
          *  broker可以多台部署，每台有4个队列。主从 就有8个队列。
          *  客户端需要选择一个队列进行发送
+         *  从这个里面找到一个
          */
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
@@ -545,10 +558,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             //计算重试次数。 同步模式，为1+设置的重试次数。其它为1次。为什么：因为同步模式需要拿到结果，其它模式是异步的，不需要立即拿到结果
             int timesTotal = communicationMode == CommunicationMode.SYNC ? 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed() : 1;
             int times = 0;
+            /**
+             * 记录broker的ip 和端口
+             */
             String[] brokersSent = new String[timesTotal];
             for (; times < timesTotal; times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();//同步失败重试的时候这个值。会有
-                //找一个队列进行消息发送
+                /**
+                 * 找一个队列进行消息发送  TODO
+                 */
                 MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
                 if (mqSelected != null) {
                     mq = mqSelected;
@@ -556,7 +574,17 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     try {
                         beginTimestampPrev = System.currentTimeMillis();
                         //这个地方比较鸡肋，如果第一次超时了，以后每次都会超时。应该在for循环里重置beginTimestampFirst
+                        /**
+                         * 这个超时 减的时间 是一个for循环外的全局时间 beginTimestampFirst。发生异常后进入for循环
+                         * 这个时间应该重置为当前时间
+                         */
                         long costTime = beginTimestampPrev - beginTimestampFirst;
+                        /**
+                         * 这个timeout 没有 重置的地方。如果真的发生了RemotingException。
+                         * 设置的重置次数则 用不上。bug
+                         * 或者超时时间 应该计算未 重试次数*timeout
+                         *
+                         */
                         if (timeout < costTime) {
                             callTimeout = true;
                             break;
@@ -564,6 +592,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         //真正发送消息的地方
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
                         endTimestamp = System.currentTimeMillis();
+                        /**
+                         * 正常 是不用隔离
+                         */
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
                         switch (communicationMode) {
                             case ASYNC:
@@ -572,6 +603,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                 return null;
                             case SYNC:
                                 if (sendResult.getSendStatus() != SendStatus.SEND_OK) {
+                                    /**
+                                     * 选择其他broker进行重试
+                                     */
                                     if (this.defaultMQProducer.isRetryAnotherBrokerWhenNotStoreOK()) {
                                         continue;
                                     }
@@ -582,13 +616,26 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                 break;
                         }
                     } catch (RemotingException e) {//如果异常
+                        /**
+                         * 应该加一个判断 如果是oneway 则不用进行重试
+                         * oneway 不支持重试
+                         * if(ONEWAY){break}
+                         */
                         endTimestamp = System.currentTimeMillis();
+                        /**
+                         * 异常需要隔离
+                         */
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
                         log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
                         exception = e;
                         continue;
                     } catch (MQClientException e) {
+                        /**
+                         * 应该加一个判断 如果是oneway 则不用进行重试
+                         * oneway 不支持重试
+                         * if(ONEWAY){break}
+                         */
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
                         log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
@@ -596,12 +643,21 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         exception = e;
                         continue;
                     } catch (MQBrokerException e) {
+                        /**
+                         * 应该加一个判断 如果是oneway 则不用进行重试
+                         * oneway 不支持重试
+                         * if(ONEWAY){break}
+                         */
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
                         log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
                         exception = e;
                         switch (e.getResponseCode()) {
+                            /**
+                             * //异步发送不走这里。如果broker 发生系统繁忙，page_cache被锁时间太长。这里没有相应的状态
+                             * 进行判断重试 TODO
+                             */
                             case ResponseCode.TOPIC_NOT_EXIST:
                             case ResponseCode.SERVICE_NOT_AVAILABLE:
                             case ResponseCode.SYSTEM_ERROR:
@@ -617,6 +673,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                 throw e;
                         }
                     } catch (InterruptedException e) {
+                        /**
+                         * 应该加一个判断 如果是oneway 则不用进行重试
+                         * oneway 不支持重试
+                         * if(ONEWAY){break}
+                         */
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
                         log.warn(String.format("sendKernelImpl exception, throw exception, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
@@ -724,6 +785,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         SendMessageContext context = null;
         if (brokerAddr != null) {
+            /**
+             * 如果开通了vip.则使用 减1的端口来写消息
+             * 系统默认是10911  那vip就会使用 10910
+             */
             brokerAddr = MixAll.brokerVIPChannel(this.defaultMQProducer.isSendMessageWithVIPChannel(), brokerAddr);
 
             byte[] prevBody = msg.getBody();
@@ -844,6 +909,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         if (timeout < costTimeSync) {
                             throw new RemotingTooMuchRequestException("sendKernelImpl call timeout");
                         }
+                        /**
+                         * 真正发送的地方 TODO
+                         */
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
                             brokerAddr,
                             mq.getBrokerName(),

@@ -21,7 +21,7 @@ import java.util.Random;
 
 public class ThreadLocalIndex {
     private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<Integer>();
-    private final Random random = new Random();
+    private final Random random = new Random();//初始化的时候，random一个值
 
     public int getAndIncrement() {
         Integer index = this.threadLocalIndex.get();
@@ -32,7 +32,7 @@ public class ThreadLocalIndex {
             this.threadLocalIndex.set(index);
         }
 
-        index = Math.abs(index + 1);
+        index = Math.abs(index + 1);//超过int 最大值
         if (index < 0)
             index = 0;
 
