@@ -86,12 +86,21 @@ public class PullMessageService extends ServiceThread {
         }
     }
 
+    /**
+     * 进行消息拉取  TODO
+     */
     @Override
     public void run() {
         log.info(this.getServiceName() + " service started");
 
         while (!this.isStopped()) {
             try {
+                /**
+                 * 进行消息拉取。
+                 * take一个如果没有就阻塞。有的话，则进行拉取动作  TODO
+                 * 从全局拉取队列里进行消息拉取
+                 * take() 没有消息则进行阻塞
+                 */
                 PullRequest pullRequest = this.pullRequestQueue.take();
                 this.pullMessage(pullRequest);
             } catch (InterruptedException ignored) {

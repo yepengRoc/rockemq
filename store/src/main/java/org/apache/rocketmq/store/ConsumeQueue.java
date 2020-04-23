@@ -96,6 +96,13 @@ public class ConsumeQueue {
     }
 
     public void recover() {
+        /**
+         * 从倒数第3个文件开始恢复
+         *
+         * MappedFile(FlushPosition + CommitedPosition + WrotePosition)
+         * MappedFileQueue(FlushedWhere CommitedWhere)
+         * ConsumeQueue(maxPhysicOffset)
+         */
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
 
@@ -107,6 +114,7 @@ public class ConsumeQueue {
             MappedFile mappedFile = mappedFiles.get(index);
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
+            //在某个mappedFile的相对位置
             long mappedFileOffset = 0;
             long maxExtAddr = 1;
             while (true) {
@@ -152,6 +160,7 @@ public class ConsumeQueue {
             processOffset += mappedFileOffset;
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
+            //删除脏数据
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
 
             if (isExtReadEnable()) {

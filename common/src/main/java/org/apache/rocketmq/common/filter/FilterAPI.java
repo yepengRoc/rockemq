@@ -45,6 +45,15 @@ public class FilterAPI {
         if (null == subString || subString.equals(SubscriptionData.SUB_ALL) || subString.length() == 0) {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
         } else {
+            /**
+             * TODO
+             * 发送的消息都带有tags
+             * 可用用|进行分割
+             * 会把tag 放入tagset中
+             * 然后针对每个tag计算一个hash值，放入 codeset
+             * 在broker端，使用codeset进行消息过滤，因为存在hash冲突，
+             * broker过滤的消息，可能有部分不是消费端想要的，这时在消费端通过tagset再次进行一次过滤
+             */
             String[] tags = subString.split("\\|\\|");
             if (tags.length > 0) {
                 for (String tag : tags) {

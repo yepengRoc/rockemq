@@ -66,6 +66,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                                           RemotingCommand request) throws RemotingCommandException {
         SendMessageContext mqtraceContext;
         switch (request.getCode()) {
+            /**
+             * 重试消息处理 TODO
+             */
             case RequestCode.CONSUMER_SEND_MSG_BACK://消息进度的ack包.
                 return this.consumerSendMsgBack(ctx, request);
             default:
@@ -95,6 +98,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             this.brokerController.getMessageStore().isTransientStorePoolDeficient();
     }
 
+    /**
+     * 重试消息的处理
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     private RemotingCommand consumerSendMsgBack(final ChannelHandlerContext ctx, final RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -112,7 +122,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
             this.executeConsumeMessageHookAfter(context);
         }
-
+        /**
+         * 拿到重试的消息  查找订阅关系
+         * 每次心跳的时候会发送订阅信息给broker. broker进行缓存
+         */
         SubscriptionGroupConfig subscriptionGroupConfig =
             this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(requestHeader.getGroup());
         if (null == subscriptionGroupConfig) {
@@ -141,7 +154,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (requestHeader.isUnitMode()) {
             topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
         }
-
+        /**
+         * 获取topic配置
+         */
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
             newTopic,
             subscriptionGroupConfig.getRetryQueueNums(),
@@ -157,20 +172,26 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             response.setRemark(String.format("the topic[%s] sending message is forbidden", newTopic));
             return response;
         }
-
+        /**
+         *  查找消息-从commitlog中
+         *  找到原来的消息  TODO
+         */
         MessageExt msgExt = this.brokerController.getMessageStore().lookMessageByOffset(requestHeader.getOffset());
         if (null == msgExt) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("look message by offset failed, " + requestHeader.getOffset());
             return response;
         }
-
+        /**
+         * 放入重试消息主体。 在msg中加入属性 RETY_TOPI  对应的是原来真实的topic
+         * TODO
+         */
         final String retryTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
         if (null == retryTopic) {
             MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
         }
         msgExt.setWaitStoreMsgOK(false);
-
+        //获取delevlev
         int delayLevel = requestHeader.getDelayLevel();
 
         int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
@@ -193,31 +214,33 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 return response;
             }
         } else {
-            if (0 == delayLevel) {
+            if (0 == delayLevel) {//重试次数+3  。初始就是3.不让很快就又进行消费
                 delayLevel = 3 + msgExt.getReconsumeTimes();
             }
 
             msgExt.setDelayTimeLevel(delayLevel);
         }
-
+        /**
+         * 拷贝原来的信息。组装重试信息 从新发送到 CommitLog TODO
+         */
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
-        msgInner.setTopic(newTopic);
+        msgInner.setTopic(newTopic);//这里的netTopic是一个 %Retry%+消费组名
         msgInner.setBody(msgExt.getBody());
         msgInner.setFlag(msgExt.getFlag());
         MessageAccessor.setProperties(msgInner, msgExt.getProperties());
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
         msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(null, msgExt.getTags()));
 
-        msgInner.setQueueId(queueIdInt);
+        msgInner.setQueueId(queueIdInt);//0
         msgInner.setSysFlag(msgExt.getSysFlag());
         msgInner.setBornTimestamp(msgExt.getBornTimestamp());
         msgInner.setBornHost(msgExt.getBornHost());
         msgInner.setStoreHost(this.getStoreHost());
-        msgInner.setReconsumeTimes(msgExt.getReconsumeTimes() + 1);
+        msgInner.setReconsumeTimes(msgExt.getReconsumeTimes() + 1);//重试次数+1
 
         String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
         MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
-
+        //消息丢回到messagestore
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         if (putMessageResult != null) {
             switch (putMessageResult.getPutMessageStatus()) {

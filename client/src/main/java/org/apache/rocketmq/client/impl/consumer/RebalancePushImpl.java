@@ -78,6 +78,9 @@ public class RebalancePushImpl extends RebalanceImpl {
         }
 
         // notify broker
+        /**
+         * 发送心跳 TODO
+         */
         this.getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
     }
 
@@ -157,6 +160,7 @@ public class RebalancePushImpl extends RebalanceImpl {
                         result = 0L;
                     } else {
                         try {
+                            //去broker上获取一次最大的消费进度
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
                             result = -1;
@@ -211,6 +215,10 @@ public class RebalancePushImpl extends RebalanceImpl {
         return result;
     }
 
+    /**
+     * 放到一个全局的 linkedblockqueue 队列里面
+     * @param pullRequestList
+     */
     @Override
     public void dispatchPullRequest(List<PullRequest> pullRequestList) {
         for (PullRequest pullRequest : pullRequestList) {

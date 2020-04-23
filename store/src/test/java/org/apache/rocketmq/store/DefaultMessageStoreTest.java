@@ -67,8 +67,14 @@ public class DefaultMessageStoreTest {
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         //生产消息的地址
         BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
-
+        /**
+         * 构建同步刷盘方式
+         */
         messageStore = buildMessageStore();
+        /**
+         * 构建异步刷盘方式
+         */
+//        messageStore = buildMessageStore2();
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();
@@ -119,6 +125,30 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxHashSlotNum(10);
         messageStoreConfig.setMaxIndexNum(200);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
+        messageStoreConfig.setFlushIntervalConsumeQueue(1);//刷盘间隔 comsumequeue
+        //默认落盘
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
+    }
+
+    /**
+     * 构建异步刷盘设置
+     * @return
+     * @throws Exception
+     */
+    private MessageStore buildMessageStore2() throws Exception {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+       /* messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
+        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 1024 * 10);
+        messageStoreConfig.setMaxHashSlotNum(10000);
+        messageStoreConfig.setMaxIndexNum(100 * 100);*/
+        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 10);//一个文件大小是10k
+        messageStoreConfig.setMapedFileSizeConsumeQueue(256);//一个consumer文件大小 256k 就切换一个
+        messageStoreConfig.setMaxHashSlotNum(10);
+        messageStoreConfig.setMaxIndexNum(200);
+        messageStoreConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
+
+       // messageStoreConfig.setTransientStorePoolEnable(true);//堆外内存池设置
+        messageStoreConfig.setFlushCommitLogTimed(true);//是否定时调度刷盘。默认是false 实时刷盘
         messageStoreConfig.setFlushIntervalConsumeQueue(1);//刷盘间隔 comsumequeue
         //默认落盘
         return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
@@ -494,7 +524,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void testRecover() throws Exception {
+    public void testRecoverBack() throws Exception {
         String topic = "recoverTopic";
         MessageBody = StoreMessage.getBytes();
         for (int i = 0; i < 100; i++) {
@@ -504,7 +534,7 @@ public class DefaultMessageStoreTest {
             messageStore.putMessage(messageExtBrokerInner);
         }
 
-       // Thread.sleep(100);//wait for build consumer queue
+        // Thread.sleep(100);//wait for build consumer queue
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
 
         long maxPhyOffset = messageStore.getMaxPhyOffset();
@@ -576,6 +606,121 @@ public class DefaultMessageStoreTest {
         file.createNewFile();
 
         messageStore = buildMessageStore();
+        load = messageStore.load();
+        assertTrue(load);
+        messageStore.start();
+        assertTrue(secondLastPhyOffset == messageStore.getMaxPhyOffset());
+        assertTrue(secondLastCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
+
+        //message write again
+        for (int i = 0; i < 100; i++) {
+            messageExtBrokerInner = buildMessage();
+            messageExtBrokerInner.setTopic(topic);
+            messageExtBrokerInner.setQueueId(0);
+            messageStore.putMessage(messageExtBrokerInner);
+        }
+    }
+    /**
+     * 测试消息恢复
+     * @throws Exception
+     */
+    @Test
+    public void testRecover() throws Exception {
+        String topic = "recoverTopic";
+        MessageBody = StoreMessage.getBytes();
+        for (int i = 0; i < 100; i++) {
+            MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+            messageExtBrokerInner.setTopic(topic);
+            messageExtBrokerInner.setQueueId(0);
+            messageExtBrokerInner.setWaitStoreMsgOK(false);
+            messageStore.putMessage(messageExtBrokerInner);
+        }
+
+       // Thread.sleep(100);//wait for build consumer queue
+        //等待cosume 和 index构建完成
+        StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
+
+        long maxPhyOffset = messageStore.getMaxPhyOffset();
+        long maxCqOffset = messageStore.getMaxOffsetInQueue(topic, 0);
+
+        //1.just reboot
+        /**
+         *
+         */
+        messageStore.shutdown();
+        messageStore = buildMessageStore();
+        //正常恢复
+        boolean load = messageStore.load();
+        assertTrue(load);
+        messageStore.start();
+        assertTrue(maxPhyOffset == messageStore.getMaxPhyOffset());
+        assertTrue(maxCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
+
+        //2.damage commitlog and reboot normal  又写入
+        for (int i = 0; i < 100; i++) {
+            MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+            messageExtBrokerInner.setTopic(topic);
+            messageExtBrokerInner.setQueueId(0);
+            messageStore.putMessage(messageExtBrokerInner);
+        }
+        //Thread.sleep(100);
+        StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
+        long secondLastPhyOffset = messageStore.getMaxPhyOffset();
+        long secondLastCqOffset = messageStore.getMaxOffsetInQueue(topic, 0);
+
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+        messageExtBrokerInner.setTopic(topic);
+        messageExtBrokerInner.setQueueId(0);
+        messageExtBrokerInner.setWaitStoreMsgOK(false);
+        messageStore.putMessage(messageExtBrokerInner);
+
+        Thread.sleep(1000);
+        //
+      /*  messageStore.shutdown();
+
+        //damage last message  破坏最后一个消息
+        damageCommitlog(secondLastPhyOffset);
+
+        //reboot
+        messageStore = buildMessageStore();
+
+        load = messageStore.load();
+        assertTrue(load);
+        messageStore.start();
+        assertTrue(secondLastPhyOffset == messageStore.getMaxPhyOffset());
+        assertTrue(secondLastCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
+
+        //3.damage commitlog and reboot abnormal
+        for (int i = 0; i < 100; i++) {
+            messageExtBrokerInner = buildMessage();
+            messageExtBrokerInner.setTopic(topic);
+            messageExtBrokerInner.setQueueId(0);
+            messageStore.putMessage(messageExtBrokerInner);
+        }
+        //Thread.sleep(100);
+        StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
+        secondLastPhyOffset = messageStore.getMaxPhyOffset();
+        secondLastCqOffset = messageStore.getMaxOffsetInQueue(topic, 0);
+
+        messageExtBrokerInner = buildMessage();
+        messageExtBrokerInner.setTopic(topic);
+        messageExtBrokerInner.setQueueId(0);
+        messageStore.putMessage(messageExtBrokerInner);
+        messageStore.shutdown();*/
+        long LastPhyOffset = messageStore.getMaxPhyOffset();
+        long LastCqOffset = messageStore.getMaxOffsetInQueue(topic, 0);
+        //damage last message
+        damageCommitlog(secondLastPhyOffset);
+
+        messageStore.shutdown();
+        //add abort file
+        String fileName = StorePathConfigHelper.getAbortFile(((DefaultMessageStore) messageStore).getMessageStoreConfig().getStorePathRootDir());
+        File file = new File(fileName);
+        MappedFile.ensureDirOK(file.getParent());
+        file.createNewFile();
+
+        messageStore = buildMessageStore();
+        //真正恢复的地方
         load = messageStore.load();
         assertTrue(load);
         messageStore.start();

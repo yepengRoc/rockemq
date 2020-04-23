@@ -57,6 +57,9 @@ public class MQClientManager {
          */
         MQClientInstance instance = this.factoryTable.get(clientId);
         if (null == instance) {
+            /**
+             * 创建客户端的地方
+             */
             instance =
                 new MQClientInstance(clientConfig.cloneClientConfig(),
                     this.factoryIndexGenerator.getAndIncrement(), clientId, rpcHook);

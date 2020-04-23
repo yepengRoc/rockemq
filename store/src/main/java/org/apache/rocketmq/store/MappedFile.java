@@ -336,7 +336,7 @@ public class MappedFile extends ReferenceResource {
      * @return The current flushed position
      */
     public int flush(final int flushLeastPages) {
-        if (this.isAbleToFlush(flushLeastPages)) {
+        if (this.isAbleToFlush(flushLeastPages)) {//是否可以刷盘
             if (this.hold()) {
                 int value = getReadPosition();//获取
 
@@ -416,7 +416,7 @@ public class MappedFile extends ReferenceResource {
             return true;
         }
 
-        if (flushLeastPages > 0) {
+        if (flushLeastPages > 0) {//mapppedFile累计到一定的量刷盘效率比较高
             return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= flushLeastPages;
         }
 

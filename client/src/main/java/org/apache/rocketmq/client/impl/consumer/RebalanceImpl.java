@@ -258,6 +258,9 @@ public abstract class RebalanceImpl {
                 break;
             }
             case CLUSTERING: {
+                /**
+                 * 集群模式下的一个负载 TODO
+                 */
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
@@ -296,13 +299,16 @@ public abstract class RebalanceImpl {
                     if (allocateResult != null) {
                         allocateResultSet.addAll(allocateResult);
                     }
-
+                    /**
+                     * processQueue 的数据 在初始化的时候 这里会初始化一次TODO
+                     */
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
                             "rebalanced result changed. allocateMessageQueueStrategyName={}, group={}, topic={}, clientId={}, mqAllSize={}, cidAllSize={}, rebalanceResultSize={}, rebalanceResultSet={}",
                             strategy.getName(), consumerGroup, topic, this.mQClientFactory.getClientId(), mqSet.size(), cidAll.size(),
                             allocateResultSet.size(), allocateResultSet);
+                        //第一次change
                         this.messageQueueChanged(topic, mqSet, allocateResultSet);
                     }
                 }
@@ -365,7 +371,9 @@ public abstract class RebalanceImpl {
                 }
             }
         }
-
+        /**
+         * 初始化 拉取请求 TODO
+         */
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {
@@ -376,13 +384,18 @@ public abstract class RebalanceImpl {
 
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue();
+                /**
+                 * 计算从哪里消费
+                 */
                 long nextOffset = this.computePullFromWhere(mq);
+                //大于0 说明有消息供消费
                 if (nextOffset >= 0) {
                     ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
                     if (pre != null) {
                         log.info("doRebalance, {}, mq already exists, {}", consumerGroup, mq);
                     } else {
                         log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
+                        //创建一个拉取请求
                         PullRequest pullRequest = new PullRequest();
                         pullRequest.setConsumerGroup(consumerGroup);
                         pullRequest.setNextOffset(nextOffset);
@@ -396,7 +409,9 @@ public abstract class RebalanceImpl {
                 }
             }
         }
-
+        /**
+         * 分发拉取请求
+         */
         this.dispatchPullRequest(pullRequestList);
 
         return changed;

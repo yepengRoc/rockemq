@@ -135,8 +135,11 @@ public class MQClientInstance {
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
         this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
         this.clientRemotingProcessor = new ClientRemotingProcessor(this);
+        //注册处理器
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook, clientConfig);
-
+        /**
+         * 更新namesvr信息
+         */
         if (this.clientConfig.getNamesrvAddr() != null) {
             this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
             log.info("user specified name server address: {}", this.clientConfig.getNamesrvAddr());
@@ -145,14 +148,14 @@ public class MQClientInstance {
         this.clientId = clientId;
 
         this.mQAdminImpl = new MQAdminImpl(this);
-
+        //拉取线程 TODO
         this.pullMessageService = new PullMessageService(this);
-
+        //TODO 负载线程
         this.rebalanceService = new RebalanceService(this);
-
+        //生产者。说明是 同一个jvm中是共用一个clientinstance
         this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
         this.defaultMQProducer.resetClientConfig(clientConfig);
-
+        //消费状态管理-- 广播模式是自己管理自己的消费进度
         this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
 
         log.info("Created a new client Instance, InstanceIndex:{}, ClientID:{}, ClientConfig:{}, ClientVersion:{}, SerializerType:{}",
@@ -234,7 +237,7 @@ public class MQClientInstance {
                     this.serviceState = ServiceState.START_FAILED;
                     // If not specified,looking address from name server
                     /**
-                     * 如果client topic路由中没有这个namesrv信息。
+                     * 如果client topic路由中没有这个namesrv信息。  TODO
                      * 则去抓取一次。相当于扩展namesvr后（添加一个namesvr服务器），动态的去获取一次信息
                      */
                     if (null == this.clientConfig.getNamesrvAddr()) {
@@ -533,6 +536,10 @@ public class MQClientInstance {
     }
 
     private void sendHeartbeatToAllBroker() {
+        /**
+         * 这个地方 心跳包里面有订阅的信息  -TODO
+         * 通过心跳包去更新订阅信息
+         */
         final HeartbeatData heartbeatData = this.prepareHeartbeatData();
         final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
         final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();

@@ -244,6 +244,10 @@ public abstract class NettyRemotingAbstract {
             }
 
             try {
+                /**
+                 * pair 对应一个对应的线程池。
+                 * 执行请求任务
+                 */
                 final RequestTask requestTask = new RequestTask(run, ctx.channel(), cmd);
                 pair.getObject2().submit(requestTask);
             } catch (RejectedExecutionException e) {

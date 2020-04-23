@@ -101,6 +101,12 @@ public class ScheduleMessageService extends ConfigManager {
         this.offsetTable.put(delayLevel, offset);
     }
 
+    /**
+     * 计算下一次投递的时间  这里+1 因为数据还没真正处理完。加了一个宽裕的时间
+     * @param delayLevel
+     * @param storeTimestamp
+     * @return
+     */
     public long computeDeliverTimestamp(final int delayLevel, final long storeTimestamp) {
         Long time = this.delayLevelTable.get(delayLevel);
         if (time != null) {
@@ -110,6 +116,9 @@ public class ScheduleMessageService extends ConfigManager {
         return storeTimestamp + 1000;
     }
 
+    /**
+     * 定时任务 TODO
+     */
     public void start() {
         if (started.compareAndSet(false, true)) {
             this.timer = new Timer("ScheduleMessageTimerThread", true);
@@ -245,10 +254,16 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
         /**
+         * 修正时间 TODO
+         * 因为delayLevelTable 中的数据是可以改变de.如果后序改变了配置，则从新进行修正
          * @return
          */
         private long correctDeliverTimestamp(final long now, final long deliverTimestamp) {
-
+            /**
+             * 获取投递时间。
+             * 如果delayLevelTable 的值改变了 变的比原来 tag里计算的值小的，则进行修正。
+             * 设置为立即出发。如果比原来投递时间大，则返回。实际后序会触发一次
+             */
             long result = deliverTimestamp;
 
             long maxTimestamp = now + ScheduleMessageService.this.delayLevelTable.get(this.delayLevel);
@@ -260,6 +275,9 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
         public void executeOnTimeup() {
+            /**
+             * 取到对应的消费队列
+             */
             ConsumeQueue cq =
                 ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,
                     delayLevel2QueueId(delayLevel));
@@ -291,6 +309,11 @@ public class ScheduleMessageService extends ConfigManager {
                             }
 
                             long now = System.currentTimeMillis();
+                            /**
+                             * tag 正常是 订阅消息传入的tag的hash值，在延时队列里
+                             * 被改写了   TODO
+                             * 将要调度发生的时间 hash 然后存到这个字段里
+                             */
                             long deliverTimestamp = this.correctDeliverTimestamp(now, tagsCode);
 
                             nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
@@ -304,6 +327,9 @@ public class ScheduleMessageService extends ConfigManager {
 
                                 if (msgExt != null) {
                                     try {
+                                        /**
+                                         * 恢复为原来的消息TODO
+                                         */
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
                                         PutMessageResult putMessageResult =
                                             ScheduleMessageService.this.writeMessageStore
@@ -378,6 +404,9 @@ public class ScheduleMessageService extends ConfigManager {
             MessageAccessor.setProperties(msgInner, msgExt.getProperties());
 
             TopicFilterType topicFilterType = MessageExt.parseTopicFilterType(msgInner.getSysFlag());
+            /**
+             * 转换为hashcode  TODO
+             */
             long tagsCodeValue =
                 MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
             msgInner.setTagsCode(tagsCodeValue);
@@ -391,9 +420,13 @@ public class ScheduleMessageService extends ConfigManager {
 
             msgInner.setWaitStoreMsgOK(false);
             MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
-
+            /**
+             * 恢复原来的topic
+             */
             msgInner.setTopic(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
-
+            /**
+             * 恢复原来的queueId
+             */
             String queueIdStr = msgInner.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID);
             int queueId = Integer.parseInt(queueIdStr);
             msgInner.setQueueId(queueId);

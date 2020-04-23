@@ -127,6 +127,11 @@ public abstract class ServiceThread implements Runnable {
     }
 
     protected void waitForRunning(long interval) {
+        /**
+         * 如果已经执行了唤醒操作，则交换两个 requst 列表进行数据处理。
+         * 说明这个时候数据来了
+         * 会把hasNotified 改为false
+         */
         if (hasNotified.compareAndSet(true, false)) {
             this.onWaitEnd();
             return;

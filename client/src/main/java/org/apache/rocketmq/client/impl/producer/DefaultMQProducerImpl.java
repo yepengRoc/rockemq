@@ -196,7 +196,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
 
-                if (startFactory) {
+                if (startFactory) {//如果是消费端，则这里不进行启动
                     mQClientFactory.start();
                 }
 

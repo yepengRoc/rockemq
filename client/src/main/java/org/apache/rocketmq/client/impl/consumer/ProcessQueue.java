@@ -81,6 +81,9 @@ public class ProcessQueue {
         int loop = msgTreeMap.size() < 16 ? msgTreeMap.size() : 16;
         for (int i = 0; i < loop; i++) {
             MessageExt msg = null;
+            /**
+             * 如果消息超时没有消费，则从新发回broker端进行 延迟消费消费
+             */
             try {
                 this.lockTreeMap.readLock().lockInterruptibly();
                 try {
@@ -181,6 +184,11 @@ public class ProcessQueue {
         return 0;
     }
 
+    /**
+     * 删除最老的消息。然后返回队列中最小的
+     * @param msgs
+     * @return
+     */
     public long removeMessage(final List<MessageExt> msgs) {
         long result = -1;
         final long now = System.currentTimeMillis();

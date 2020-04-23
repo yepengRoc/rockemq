@@ -58,7 +58,7 @@ public class MessageStoreConfig {
      */
     private boolean useReentrantLockWhenPutMessage = false;
 
-    // Whether schedule flush,default is real-time
+    // Whether schedule flush,default is real-time  是否定时刷盘
     @ImportantField
     private boolean flushCommitLogTimed = false;
     // ConsumeQueue flush interval

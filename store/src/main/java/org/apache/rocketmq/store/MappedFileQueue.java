@@ -390,10 +390,21 @@ public class MappedFileQueue {
         }
     }
 
+    /**
+     *
+     * @param expiredTime  配置的过期时间
+     * @param deleteFilesInterval 删除物理文件的时间隔，可能需要删除的时间不只一个，指两次删除文件的间隔时间
+     * @param intervalForcibly  在读取消息时，强制延时删除的时间
+     * @param cleanImmediately 是否立即删除
+     * @return
+     */
     public int deleteExpiredFileByTime(final long expiredTime,
         final int deleteFilesInterval,
         final long intervalForcibly,
         final boolean cleanImmediately) {
+        /**
+         *
+         */
         Object[] mfs = this.copyMappedFiles(0);
 
         if (null == mfs)
@@ -407,6 +418,7 @@ public class MappedFileQueue {
                 MappedFile mappedFile = (MappedFile) mfs[i];
                 long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
                 if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
+                    //TODO
                     if (mappedFile.destroy(intervalForcibly)) {
                         files.add(mappedFile);
                         deleteCount++;
@@ -481,9 +493,11 @@ public class MappedFileQueue {
 
     public boolean flush(final int flushLeastPages) {
         boolean result = true;
+        //根据最近的刷盘位置找mappedFile
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);
         if (mappedFile != null) {
             long tmpTimeStamp = mappedFile.getStoreTimestamp();
+            //真正刷盘的地方
             int offset = mappedFile.flush(flushLeastPages);
             long where = mappedFile.getFileFromOffset() + offset;
             result = where == this.flushedWhere;

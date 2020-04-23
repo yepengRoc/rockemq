@@ -55,6 +55,13 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     public void load() {
     }
 
+    /**
+     * 集群模式 TODO
+     * 轻量。放入缓存。异步上报 broker
+     * @param mq
+     * @param offset
+     * @param increaseOnly
+     */
     @Override
     public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
         if (mq != null) {
