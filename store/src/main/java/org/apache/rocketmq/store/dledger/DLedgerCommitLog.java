@@ -60,13 +60,13 @@ public class DLedgerCommitLog extends CommitLog {
     private final MmapFileList dLedgerFileList;
 
     //The id identifies the broker role, 0 means master, others means slave
-    private final int id;
+    private final int id;//标明broker 角色
 
     private final MessageSerializer messageSerializer;
     private volatile long beginTimeInDledgerLock = 0;
 
     //This offset separate the old commitlog from dledger commitlog
-    private long dividedCommitlogOffset = -1;
+    private long dividedCommitlogOffset = -1;//兼容旧日志 和新日志
 
 
     private boolean isInrecoveringOldCommitlog = false;
@@ -84,8 +84,17 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setDeleteWhen(defaultMessageStore.getMessageStoreConfig().getDeleteWhen());
         dLedgerConfig.setFileReservedHours(defaultMessageStore.getMessageStoreConfig().getFileReservedTime() + 1);
         id = Integer.valueOf(dLedgerConfig.getSelfId().substring(1)) + 1;
+        /**
+         * TODO
+         */
         dLedgerServer = new DLedgerServer(dLedgerConfig);
+        /**
+         * TODO
+         */
         dLedgerFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
+        /**
+         * TODO 回填物理偏移
+         */
         DLedgerMmapFileStore.AppendHook appendHook = (entry, buffer, bodyOffset) -> {
             assert bodyOffset == DLedgerEntry.BODY_OFFSET;
             buffer.position(buffer.position() + bodyOffset + MessageDecoder.PHY_POS_POSITION);
@@ -415,15 +424,22 @@ public class DLedgerCommitLog extends CommitLog {
         long queueOffset;
         try {
             beginTimeInDledgerLock =  this.defaultMessageStore.getSystemClock().now();
+            //序列化消息
             encodeResult = this.messageSerializer.serialize(msg);
             queueOffset = topicQueueTable.get(encodeResult.queueOffsetKey);
             if (encodeResult.status  != AppendMessageStatus.PUT_OK) {
                 return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status));
             }
+            /**
+             * 构建appendrequest
+             */
             AppendEntryRequest request = new AppendEntryRequest();
             request.setGroup(dLedgerConfig.getGroup());
             request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
             request.setBody(encodeResult.data);
+            /**
+             * handleAppend
+             */
             dledgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
             if (dledgerFuture.getPos() == -1) {
                 return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR));
@@ -672,7 +688,7 @@ public class DLedgerCommitLog extends CommitLog {
             // 6 QUEUEOFFSET
             this.msgStoreItemMemory.putLong(queueOffset);
             // 7 PHYSICALOFFSET
-            this.msgStoreItemMemory.putLong(wroteOffset);
+            this.msgStoreItemMemory.putLong(wroteOffset);//这个时候还不知道本地存储的偏移，所以先设置成0
             // 8 SYSFLAG
             this.msgStoreItemMemory.putInt(msgInner.getSysFlag());
             // 9 BORNTIMESTAMP

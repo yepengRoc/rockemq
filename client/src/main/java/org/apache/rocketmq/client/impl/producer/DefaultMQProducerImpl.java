@@ -172,6 +172,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.start(true);
     }
 
+    /**
+     *
+     * @param startFactory  控制是否启动一个客户端实例mQClientFactory
+     * @throws MQClientException
+     */
     public void start(final boolean startFactory) throws MQClientException {
         switch (this.serviceState) {
             case CREATE_JUST:
@@ -193,10 +198,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         + "] has been created before, specify another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
                         null);
                 }
-
+                //如果开启自动创建，会在broker 进行创建
                 this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
-
-                if (startFactory) {//如果是消费端，则这里不进行启动
+                /**
+                 * 如果是发送 重试 或者 消费端。则这里不进行启动
+                 */
+                if (startFactory) {
                     mQClientFactory.start();
                 }
 
@@ -214,7 +221,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             default:
                 break;
         }
-        //发送心跳
+        //发送心跳 TODO
+        /**
+         * 发送心跳
+         */
         this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
     }
 
@@ -593,7 +603,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
                         endTimestamp = System.currentTimeMillis();
                         /**
-                         * 正常 是不用隔离
+                         * 正常 是不用隔离。--更新
+                         * 计算一个 当前broker 的不可用时间
                          */
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
                         switch (communicationMode) {
@@ -779,7 +790,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         long beginStartTime = System.currentTimeMillis();
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
-            tryToFindTopicPublishInfo(mq.getTopic());
+            tryToFindTopicPublishInfo(mq.getTopic());//从namesvr上再去找一遍
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
 
@@ -788,6 +799,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             /**
              * 如果开通了vip.则使用 减1的端口来写消息
              * 系统默认是10911  那vip就会使用 10910
+             * 规避掉繁忙接口
              */
             brokerAddr = MixAll.brokerVIPChannel(this.defaultMQProducer.isSendMessageWithVIPChannel(), brokerAddr);
 
@@ -795,7 +807,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             try {
                 //for MessageBatch,ID has been set in the generating process
                 if (!(msg instanceof MessageBatch)) {
-                    MessageClientIDSetter.setUniqID(msg);
+                    MessageClientIDSetter.setUniqID(msg);//批量为每一个消息生成一个msgeid
                 }
 
                 int sysFlag = 0;
@@ -1253,16 +1265,29 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                                           final LocalTransactionExecuter localTransactionExecuter, final Object arg)
         throws MQClientException {
         TransactionListener transactionListener = getCheckListener();
+        /**
+         * 实现事务的两种方式：1实现TransactionListener接口
+         *  2 实现LocalTransactionExecuter和TransactionCheckListener接口
+         */
         if (null == localTransactionExecuter && null == transactionListener) {
             throw new MQClientException("tranExecutor is null", null);
         }
         Validators.checkMessage(msg, this.defaultMQProducer);
 
         SendResult sendResult = null;
+        /**
+         * 标识是事务消息
+         */
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
+        /**
+         * 设置produce group属性为生产者Id -对于事务回查特别重要
+         * 1broker向生产者发送回查请求时，通过produce group属性来查找channel
+         * 2 生产者通过producer group属性值从producerTable中找生产者实例，用来执行查询本地事务状态逻辑
+         * TODO
+         */
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
         try {
-            sendResult = this.send(msg);
+            sendResult = this.send(msg);//同步发送
         } catch (Exception e) {
             throw new MQClientException("send message Exception", e);
         }
@@ -1272,6 +1297,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         switch (sendResult.getSendStatus()) {
             case SEND_OK: {
                 try {
+                    /**
+                     * 如果设置TransactionId,则将它放入消息的properties中（目前没有用到），
+                     * 否则以UNIQ_KEY作为消息的transactionid
+                     */
                     if (sendResult.getTransactionId() != null) {
                         msg.putUserProperty("__transactionId__", sendResult.getTransactionId());
                     }
@@ -1279,6 +1308,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     if (null != transactionId && !"".equals(transactionId)) {
                         msg.setTransactionId(transactionId);
                     }
+                    /**
+                     * 执行本地事务逻辑 TODO
+                     * 因为历史原因，事务存在两种实现方式，所以要都判断到
+                     */
                     if (null != localTransactionExecuter) {
                         localTransactionState = localTransactionExecuter.executeLocalTransactionBranch(msg, arg);
                     } else if (transactionListener != null) {
@@ -1310,6 +1343,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
         try {
+            /**
+             * 如果事务状态是COMMIT_MESSAGE则为提交
+             * UNKNOW则什么也不做，如果ROLL_BACK_MESSGAE则回滚 TODO
+             */
             this.endTransaction(sendResult, localTransactionState, localException);
         } catch (Exception e) {
             log.warn("local transaction execute " + localTransactionState + ", but end broker transaction failed", e);

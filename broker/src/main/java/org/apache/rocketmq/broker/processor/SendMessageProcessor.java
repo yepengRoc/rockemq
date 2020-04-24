@@ -389,6 +389,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes());
         PutMessageResult putMessageResult = null;
         Map<String, String> oriProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
+        /**
+         * 获取事务配置属性 TODO
+         */
         String traFlag = oriProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
         /**
          * 是否是事务消息
@@ -401,7 +404,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                         + "] sending transaction message is forbidden");
                 return response;
             }
-            //处理事务消息的prepare消息
+            //处理事务消息的prepare消息 TODO
             putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
         } else {
             //普通消息    事务消息的commit rollback

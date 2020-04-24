@@ -149,7 +149,7 @@ public class DefaultMessageStore implements MessageStore {
         this.brokerStatsManager = brokerStatsManager;
         //分配服务
         this.allocateMappedFileService = new AllocateMappedFileService(this);//线程  -用于创建 mappedfile文件
-        if (messageStoreConfig.isEnableDLegerCommitLog()) {
+        if (messageStoreConfig.isEnableDLegerCommitLog()) {//deledger
             this.commitLog = new DLedgerCommitLog(this);
         } else {
             this.commitLog = new CommitLog(this);
@@ -161,7 +161,7 @@ public class DefaultMessageStore implements MessageStore {
         this.cleanConsumeQueueService = new CleanConsumeQueueService();
         this.storeStatsService = new StoreStatsService();//线程
         this.indexService = new IndexService(this);//索引服务
-        if (!messageStoreConfig.isEnableDLegerCommitLog()) {//做高可用使用
+        if (!messageStoreConfig.isEnableDLegerCommitLog()) {//做高可用使用 如果开启了deledger
             this.haService = new HAService(this);
         } else {
             this.haService = null;
@@ -172,7 +172,7 @@ public class DefaultMessageStore implements MessageStore {
 
         this.transientStorePool = new TransientStorePool(messageStoreConfig);//堆外临时存储池
 
-        if (messageStoreConfig.isTransientStorePoolEnable()) {
+        if (messageStoreConfig.isTransientStorePoolEnable()) {//堆外内存池
             this.transientStorePool.init();
         }
 
@@ -918,6 +918,7 @@ public class DefaultMessageStore implements MessageStore {
 
         boolean result = this.commitLog.appendData(startOffset, data);
         if (result) {
+            //唤醒，reputmessage service TODO 构建 index 和consumequeue
             this.reputMessageService.wakeup();
         } else {
             log.error("appendToPhyQueue failed " + startOffset + " " + data.length);

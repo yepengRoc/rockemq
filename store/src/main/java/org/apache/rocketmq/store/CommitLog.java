@@ -721,6 +721,7 @@ public class CommitLog {
         handleDiskFlush(result, putMessageResult, msg);
         /**
          * ha主从操作  主从同步  TODO
+         *
          */
         handleHA(result, putMessageResult, msg);
 
@@ -767,16 +768,21 @@ public class CommitLog {
     }
 
     public void handleHA(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
+        //如果是主从同步  异步的则直接跳过
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
             HAService service = this.defaultMessageStore.getHaService();
             if (messageExt.isWaitStoreMsgOK()) {
-                // Determine whether to wait
+                // Determine whether to wait 决定是否等待，如果slave和master差距没有超过设定值，则不用再同步，返回SLAVE_NOT_AVAILABLE
                 if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
+                    //组装request
                     GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                     service.putRequest(request);
+                    //唤醒的是writeSocketService,它在等待commitlog的追加
                     service.getWaitNotifyObject().wakeupAll();
+                    //线程在request上wait
                     boolean flushOK =
                         request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                    //同步失败
                     if (!flushOK) {
                         log.error("do sync transfer other node, wait return, but failed, topic: " + messageExt.getTopic() + " tags: "
                             + messageExt.getTags() + " client address: " + messageExt.getBornHostNameString());
@@ -785,7 +791,7 @@ public class CommitLog {
                 }
                 // Slave problem
                 else {
-                    // Tell the producer, slave not available
+                    // Tell the producer, slave not available 返回slave不可用
                     putMessageResult.setPutMessageStatus(PutMessageStatus.SLAVE_NOT_AVAILABLE);
                 }
             }

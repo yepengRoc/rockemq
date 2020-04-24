@@ -417,6 +417,7 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     public String encode(final boolean prettyFormat) {
+        //返回topic配置和数据版本。
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
         topicConfigSerializeWrapper.setTopicConfigTable(this.topicConfigTable);
         topicConfigSerializeWrapper.setDataVersion(this.dataVersion);

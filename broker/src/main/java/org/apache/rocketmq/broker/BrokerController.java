@@ -243,8 +243,12 @@ public class BrokerController {
                 this.messageStore =
                     new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
                         this.brokerConfig);
+                /**
+                 * 如果是 Dleger模式
+                 */
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, (DefaultMessageStore) messageStore);
+                    //TODO
                     ((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLedgerServer().getdLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);
                 }
                 this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
@@ -866,7 +870,7 @@ public class BrokerController {
         }
 
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
-            startProcessorByHa(messageStoreConfig.getBrokerRole());
+            startProcessorByHa(messageStoreConfig.getBrokerRole());//HA 主从复制
             handleSlaveSynchronize(messageStoreConfig.getBrokerRole());
         }
         /**
@@ -1121,23 +1125,26 @@ public class BrokerController {
 
 
     private void handleSlaveSynchronize(BrokerRole role) {
-        if (role == BrokerRole.SLAVE) {
+        //如果是主切换成从
+        if (role == BrokerRole.SLAVE) {//
+            //取消原来的定时任务
             if (null != slaveSyncFuture) {
                 slaveSyncFuture.cancel(false);
             }
+            //设置master为null
             this.slaveSynchronize.setMasterAddr(null);
             slaveSyncFuture = this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        BrokerController.this.slaveSynchronize.syncAll();
+                        BrokerController.this.slaveSynchronize.syncAll();//拉取元数据
                     }
                     catch (Throwable e) {
                         log.error("ScheduledTask SlaveSynchronize syncAll error.", e);
                     }
                 }
             }, 1000 * 3, 1000 * 10, TimeUnit.MILLISECONDS);
-        } else {
+        } else {//从切换为主
             //handle the slave synchronise
             if (null != slaveSyncFuture) {
                 slaveSyncFuture.cancel(false);
@@ -1168,9 +1175,13 @@ public class BrokerController {
         }
 
         //handle the slave synchronise
+        /**
+         * 拉取元数据
+         */
         handleSlaveSynchronize(BrokerRole.SLAVE);
 
         try {
+            //向namesvr注册
             this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
         } catch (Throwable ignored) {
 
@@ -1179,7 +1190,7 @@ public class BrokerController {
     }
 
 
-
+    //让slave 变为master
     public void changeToMaster(BrokerRole role) {
         if (role == BrokerRole.SLAVE) {
             return;
@@ -1208,6 +1219,7 @@ public class BrokerController {
         messageStoreConfig.setBrokerRole(role);
 
         try {
+            //向namesever进行注册
             this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
         } catch (Throwable ignored) {
 

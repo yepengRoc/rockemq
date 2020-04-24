@@ -51,7 +51,7 @@ public class MQClientManager {
 
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
         //构建客户端id  ip@线程id(@单位)
-        String clientId = clientConfig.buildMQClientId();//ip@pid  ip加@加线程id
+        String clientId = clientConfig.buildMQClientId();//ip@pid  ip加@加线程id  ip@客户端实例名
         /**
          * MQClientInstance 进行网络请求，心跳监测等操作
          */

@@ -53,20 +53,24 @@ public class SlaveSynchronize {
     }
 
     private void syncTopicConfig() {
-        String masterAddrBak = this.masterAddr;
+        String masterAddrBak = this.masterAddr;//获取主节点地址
+        //
         if (masterAddrBak != null && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
             try {
+                //从主节点上获取topic配置信息
                 TopicConfigSerializeWrapper topicWrapper =
                     this.brokerController.getBrokerOuterAPI().getAllTopicConfig(masterAddrBak);
+                //比较版本号是否一致
                 if (!this.brokerController.getTopicConfigManager().getDataVersion()
                     .equals(topicWrapper.getDataVersion())) {
-
+                    //如果不一致，更新topicConfigManager中的版本号
                     this.brokerController.getTopicConfigManager().getDataVersion()
                         .assignNewOne(topicWrapper.getDataVersion());
+                    //清空TopicConfigManager中的TopicConfigTable信息
                     this.brokerController.getTopicConfigManager().getTopicConfigTable().clear();
                     this.brokerController.getTopicConfigManager().getTopicConfigTable()
-                        .putAll(topicWrapper.getTopicConfigTable());
-                    this.brokerController.getTopicConfigManager().persist();
+                        .putAll(topicWrapper.getTopicConfigTable());//赋值新的信息
+                    this.brokerController.getTopicConfigManager().persist();//进行持久化
 
                     log.info("Update slave topic config from master, {}", masterAddrBak);
                 }

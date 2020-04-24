@@ -240,19 +240,19 @@ public class MQClientInstance {
                      * 如果client topic路由中没有这个namesrv信息。  TODO
                      * 则去抓取一次。相当于扩展namesvr后（添加一个namesvr服务器），动态的去获取一次信息
                      */
-                    if (null == this.clientConfig.getNamesrvAddr()) {
+                    if (null == this.clientConfig.getNamesrvAddr()) {//从远程服务端抓取一次namesvr地址
                         this.mQClientAPIImpl.fetchNameServerAddr();
                     }
                     // Start request-response channel
-                    this.mQClientAPIImpl.start();
+                    this.mQClientAPIImpl.start();//启动
                     // Start various schedule tasks
-                    this.startScheduledTask();
+                    this.startScheduledTask();//开启调度任务
                     // Start pull service  开启拉消息
-                    this.pullMessageService.start();
+                    this.pullMessageService.start();//给cosumer使用
                     // Start rebalance service  负载均衡
-                    this.rebalanceService.start();
+                    this.rebalanceService.start();//cosumer 使用
                     // Start push service 推送消息
-                    this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
+                    this.defaultMQProducer.getDefaultMQProducerImpl().start(false);//从新进行一遍赋值
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;
                     break;
@@ -307,7 +307,7 @@ public class MQClientInstance {
             @Override
             public void run() {
                 try {
-                    MQClientInstance.this.cleanOfflineBroker();
+                    MQClientInstance.this.cleanOfflineBroker();//清理 无法使用的broker Todo
                     MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
                 } catch (Exception e) {
                     log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
@@ -315,7 +315,7 @@ public class MQClientInstance {
             }
         }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
         /**
-         * 每5秒 持久化消费进度
+         * 每5秒 持久化消费进度-广播模式会用到
          */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -331,6 +331,7 @@ public class MQClientInstance {
         /**
          * 动态调整 线程池
          * 参数 最大值 最小值 ，只有最小值生效。是一个无限队列
+         * TODO 这个代码是一个空实现
          */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -472,6 +473,9 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     * 生产者向所有的brokerf发送心跳
+     */
     public void sendHeartbeatToAllBrokerWithLock() {
         if (this.lockHeartbeat.tryLock()) {
             try {
@@ -625,7 +629,7 @@ public class MQClientInstance {
                      */
                     //isDefault为true
                     if (isDefault && defaultMQProducer != null) {//走这段逻辑
-                        //主动拉取信息
+                        //主动拉取信息 TODO
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);
                         if (topicRouteData != null) {
@@ -719,6 +723,10 @@ public class MQClientInstance {
         heartbeatData.setClientID(this.clientId);
 
         // Consumer
+        /**
+         * 如果是消费端。则发送消费所在的组。模式 同步 异步 oneway
+         *
+         */
         for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) {
             MQConsumerInner impl = entry.getValue();
             if (impl != null) {
@@ -726,8 +734,8 @@ public class MQClientInstance {
                 consumerData.setGroupName(impl.groupName());
                 consumerData.setConsumeType(impl.consumeType());
                 consumerData.setMessageModel(impl.messageModel());
-                consumerData.setConsumeFromWhere(impl.consumeFromWhere());
-                consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());
+                consumerData.setConsumeFromWhere(impl.consumeFromWhere());//下一次开始消费的位置
+                consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());//订阅消息
                 consumerData.setUnitMode(impl.isUnitMode());
 
                 heartbeatData.getConsumerDataSet().add(consumerData);
@@ -735,6 +743,9 @@ public class MQClientInstance {
         }
 
         // Producer
+        /**
+         * 生产者则发送 groupname
+         */
         for (Map.Entry<String/* group */, MQProducerInner> entry : this.producerTable.entrySet()) {
             MQProducerInner impl = entry.getValue();
             if (impl != null) {

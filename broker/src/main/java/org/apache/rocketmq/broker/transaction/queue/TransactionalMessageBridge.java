@@ -190,14 +190,31 @@ public class TransactionalMessageBridge {
         return store.putMessage(parseHalfMessageInner(messageInner));
     }
 
+    /**
+     * 组装事务 prepare消息
+     * @param msgInner
+     * @return
+     */
     private MessageExtBrokerInner parseHalfMessageInner(MessageExtBrokerInner msgInner) {
+        /**
+         * 将真实topic 和queueid 存储在 properties中，设置topic为 RMQ_SYS_TRANS_HALF_TOPIC
+         * 目的：
+         * 1消息存储无差别
+         * 2对原topic消费不可见
+         */
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC, msgInner.getTopic());
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID,
             String.valueOf(msgInner.getQueueId()));
+        /**
+         * 消息的sysFlag重置为0-重要。因为CommitLogDispatcherBuildConsumer在更新ConsumeQueue时会跳过
+         * TRANSACTION_PREPARED_TYPE和 TRANSACTION_ROLLBACK_TYPE的消息，这里重置为0，就不会影响
+         * RMQ_SYS_TRANS_HALF_TOPIC 的consumeQueue的更新
+         * 这样的消息也需要构建 cosumeQueue，所以这里设置为0
+         */
         msgInner.setSysFlag(
             MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), MessageSysFlag.TRANSACTION_NOT_TYPE));
-        msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic());
-        msgInner.setQueueId(0);
+        msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic());//设置事务topic
+        msgInner.setQueueId(0);//因为事务消息只有一个队列，所以queid 直接设置为0
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         return msgInner;
     }
