@@ -131,14 +131,19 @@ public abstract class ServiceThread implements Runnable {
          * 如果已经执行了唤醒操作，则交换两个 requst 列表进行数据处理。
          * 说明这个时候数据来了
          * 会把hasNotified 改为false
+         *
+         * 初始化是false.等有数据放入时 改成true.要不会一直在这里cas
          */
-        if (hasNotified.compareAndSet(true, false)) {
+        if (hasNotified.compareAndSet(true, false)) {//设置失败。说明已经执行过唤醒了。
+            /**
+             * 这里有一个交换的动作 TODO
+             */
             this.onWaitEnd();
             return;
         }
 
         //entry to wait
-        waitPoint.reset();
+        waitPoint.reset();//重置为1
 
         try {
             waitPoint.await(interval, TimeUnit.MILLISECONDS);

@@ -192,7 +192,9 @@ public class BrokerStartup {
             MixAll.printObjectProperties(log, nettyServerConfig);
             MixAll.printObjectProperties(log, nettyClientConfig);
             MixAll.printObjectProperties(log, messageStoreConfig);
-            //TODO
+            /**
+             * 创建Boker TODO
+             */
             final BrokerController controller = new BrokerController(
                 brokerConfig,
                 nettyServerConfig,
@@ -200,7 +202,9 @@ public class BrokerStartup {
                 messageStoreConfig);
             // remember all configs to prevent discard
             controller.getConfiguration().registerConfig(properties);
-            //初始化
+            /**
+             * 初始化  TODO
+             */
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();

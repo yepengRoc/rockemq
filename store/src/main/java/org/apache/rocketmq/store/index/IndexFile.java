@@ -161,7 +161,11 @@ public class IndexFile {
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);
                 //在索引数据域把刚才有冲突的hash桶的位置记录下来，这样就构建了一个linklist
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue);
-                //更新hash的索引位置，如果有冲突，已记录下来
+
+                /**
+                 * 更新hash的索引位置，如果有冲突，已记录下来
+                 * hash槽中记录的是 当前在 2000w index条目的index值
+                 */
                 this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount());
 
                 if (this.indexHeader.getIndexCount() <= 1) {

@@ -240,11 +240,14 @@ public class BrokerController {
 
         if (result) {
             try {
+                /**
+                 * 创建 消息存储 TODO
+                 */
                 this.messageStore =
                     new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
                         this.brokerConfig);
                 /**
-                 * 如果是 Dleger模式
+                 * 如果是 Dleger模式  TODO
                  */
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, (DefaultMessageStore) messageStore);
@@ -262,7 +265,8 @@ public class BrokerController {
             }
         }
         /**
-         * messgestore加载
+         * messgestore加载 TODO
+         * 查看 load方法
          */
         result = result && this.messageStore.load();
 
@@ -837,14 +841,21 @@ public class BrokerController {
     }
 
     public void start() throws Exception {
+        /**
+         * 关注下 TODO
+         */
         if (this.messageStore != null) {
             this.messageStore.start();
         }
-
+        /**
+         * 关注下 TODO
+         */
         if (this.remotingServer != null) {
             this.remotingServer.start();
         }
-
+        /**
+         * 关注下 TODO
+         */
         if (this.fastRemotingServer != null) {
             this.fastRemotingServer.start();
         }
@@ -852,15 +863,21 @@ public class BrokerController {
         if (this.fileWatchService != null) {
             this.fileWatchService.start();
         }
-
+        /**
+         * 关注下 TODO
+         */
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.start();
         }
-
+        /**
+         * 关注下 TODO
+         */
         if (this.pullRequestHoldService != null) {
             this.pullRequestHoldService.start();
         }
-
+            /**
+             * 关注下 TODO
+             */
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.start();
         }
@@ -868,7 +885,9 @@ public class BrokerController {
         if (this.filterServerManager != null) {
             this.filterServerManager.start();
         }
-
+        /**
+         * dleger高高可用
+         */
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
             startProcessorByHa(messageStoreConfig.getBrokerRole());//HA 主从复制
             handleSlaveSynchronize(messageStoreConfig.getBrokerRole());

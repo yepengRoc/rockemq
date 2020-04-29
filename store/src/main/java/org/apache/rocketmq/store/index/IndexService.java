@@ -221,6 +221,9 @@ public class IndexService {
 
             if (req.getUniqKey() != null) {
                 //uniqkey是客户端生成的messageid，也来源于message的properties
+                /**
+                 * 构建索引文件的位置 TODO
+                 */
                 indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
                 if (indexFile == null) {
                     log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
@@ -247,6 +250,11 @@ public class IndexService {
     }
 
     private IndexFile putKey(IndexFile indexFile, DispatchRequest msg, String idxKey) {
+        //当前索引文件
+        /**
+         * 如果构建失败。-- 如果索引文件满了。则从新执行一次
+         * putKey TODO
+         */
         for (boolean ok = indexFile.putKey(idxKey, msg.getCommitLogOffset(), msg.getStoreTimestamp()); !ok; ) {
             log.warn("Index file [" + indexFile.getFileName() + "] is full, trying to create another one");
 
@@ -333,6 +341,9 @@ public class IndexService {
                 Thread flushThread = new Thread(new Runnable() {
                     @Override
                     public void run() {
+                        /**
+                         * 上一个文件满的时候进行一次落盘 TODO
+                         */
                         IndexService.this.flush(flushThisFile);
                     }
                 }, "FlushIndexFileThread");

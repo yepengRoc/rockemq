@@ -148,6 +148,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.checkExecutor = producer.getExecutorService();
         } else {
             this.checkRequestQueue = new LinkedBlockingQueue<Runnable>(producer.getCheckRequestHoldMax());
+            /**
+             * 本地事务状态检查
+             */
             this.checkExecutor = new ThreadPoolExecutor(
                 producer.getCheckThreadPoolMinSize(),
                 producer.getCheckThreadPoolMaxSize(),
@@ -799,7 +802,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             /**
              * 如果开通了vip.则使用 减1的端口来写消息
              * 系统默认是10911  那vip就会使用 10910
-             * 规避掉繁忙接口
+             * 规避掉繁忙端口
              */
             brokerAddr = MixAll.brokerVIPChannel(this.defaultMQProducer.isSendMessageWithVIPChannel(), brokerAddr);
 

@@ -1,20 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.apache.rocketmq.store;
 
 import java.io.File;
@@ -131,7 +114,7 @@ public class DefaultMessageStoreTest {
     }
 
     /**
-     * 构建异步刷盘设置
+     * 构建异步刷盘设置 TODO
      * @return
      * @throws Exception
      */
@@ -146,7 +129,9 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxHashSlotNum(10);
         messageStoreConfig.setMaxIndexNum(200);
         messageStoreConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
-
+        /**
+         * 是否启用堆外内存池-- TODO 异步模式的可以开启
+         */
        // messageStoreConfig.setTransientStorePoolEnable(true);//堆外内存池设置
         messageStoreConfig.setFlushCommitLogTimed(true);//是否定时调度刷盘。默认是false 实时刷盘
         messageStoreConfig.setFlushIntervalConsumeQueue(1);//刷盘间隔 comsumequeue

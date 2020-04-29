@@ -333,7 +333,7 @@ public class MQClientAPIImpl {
          * 有两个版本消息
          */
         RemotingCommand request = null;
-        if (sendSmartMsg || msg instanceof MessageBatch) {
+        if (sendSmartMsg || msg instanceof MessageBatch) {//批量信息发送TODO
             SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
             request = RemotingCommand.createRequestCommand(msg instanceof MessageBatch ? RequestCode.SEND_BATCH_MESSAGE : RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
         } else {
@@ -393,6 +393,23 @@ public class MQClientAPIImpl {
         return this.processSendResponse(brokerName, msg, response);
     }
 
+    /**
+     * 异步发送 TODO
+     * @param addr
+     * @param brokerName
+     * @param msg
+     * @param timeoutMillis
+     * @param request
+     * @param sendCallback
+     * @param topicPublishInfo
+     * @param instance
+     * @param retryTimesWhenSendFailed
+     * @param times
+     * @param context
+     * @param producer
+     * @throws InterruptedException
+     * @throws RemotingException
+     */
     private void sendMessageAsync(
         final String addr,
         final String brokerName,
@@ -411,7 +428,7 @@ public class MQClientAPIImpl {
             @Override
             public void operationComplete(ResponseFuture responseFuture) {
                 RemotingCommand response = responseFuture.getResponseCommand();
-                if (null == sendCallback && response != null) {
+                if (null == sendCallback && response != null) {//没有回调
 
                     try {
                         SendResult sendResult = MQClientAPIImpl.this.processSendResponse(brokerName, msg, response);
@@ -425,7 +442,7 @@ public class MQClientAPIImpl {
                     producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), false);
                     return;
                 }
-
+                //有回调 TODO
                 if (response != null) {
                     try {
                         /**

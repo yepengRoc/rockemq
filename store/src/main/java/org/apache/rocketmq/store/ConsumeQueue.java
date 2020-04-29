@@ -414,6 +414,9 @@ public class ConsumeQueue {
                         topic, queueId, request.getCommitLogOffset());
                 }
             }
+            /**
+             * 写入 page_cache的地方 TODO
+             */
             boolean result = this.putMessagePositionInfo(request.getCommitLogOffset(),
                 request.getMsgSize(), tagsCode, request.getConsumeQueueOffset());
             if (result) {
@@ -471,7 +474,7 @@ public class ConsumeQueue {
                 this.minLogicOffset = expectLogicOffset;
                 this.mappedFileQueue.setFlushedWhere(expectLogicOffset);
                 this.mappedFileQueue.setCommittedWhere(expectLogicOffset);
-                this.fillPreBlank(mappedFile, expectLogicOffset);
+                this.fillPreBlank(mappedFile, expectLogicOffset);//
                 log.info("fill pre blank space " + mappedFile.getFileName() + " " + expectLogicOffset + " "
                     + mappedFile.getWrotePosition());
             }
@@ -498,6 +501,9 @@ public class ConsumeQueue {
             }
             this.maxPhysicOffset = offset + size;
             //添加到page cache
+            /**
+             * 添加到page_cache TODO consumeque
+             */
             return mappedFile.appendMessage(this.byteBufferIndex.array());
         }
         return false;

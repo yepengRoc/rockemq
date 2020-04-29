@@ -424,7 +424,12 @@ public abstract class NettyRemotingAbstract {
     public RemotingCommand invokeSyncImpl(final Channel channel, final RemotingCommand request,
         final long timeoutMillis)
         throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException {
-        final int opaque = request.getOpaque();//每个请求的唯一标识。只能在一个jvm实例中唯一
+        /**
+         * 每个请求的唯一标识。只能在一个jvm实例中唯一
+         * 最后放在一个reponseTable中，根据这个id 来决定处理的顺序
+         */
+
+        final int opaque = request.getOpaque();
 
         try {
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis, null, null);
@@ -436,7 +441,7 @@ public abstract class NettyRemotingAbstract {
             channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture f) throws Exception {
-                    if (f.isSuccess()) {
+                    if (f.isSuccess()) {//成功
                         responseFuture.setSendRequestOK(true);
                         return;
                     } else {
@@ -466,11 +471,22 @@ public abstract class NettyRemotingAbstract {
             }
 
             return responseCommand;
-        } finally {
+        } finally {//有相应，则标识处理结束。移除掉
             this.responseTable.remove(opaque);
         }
     }
 
+    /**
+     * 异步发送
+     * @param channel
+     * @param request
+     * @param timeoutMillis
+     * @param invokeCallback
+     * @throws InterruptedException
+     * @throws RemotingTooMuchRequestException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     */
     public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis,
         final InvokeCallback invokeCallback)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {

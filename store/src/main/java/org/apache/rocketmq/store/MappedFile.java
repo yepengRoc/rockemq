@@ -280,6 +280,9 @@ public class MappedFile extends ReferenceResource {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
             //刷新写入位置。写入信息到os_cache
+            /**
+             * 统计写入的字节
+             */
             this.wrotePosition.addAndGet(result.getWroteBytes());
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
@@ -336,13 +339,16 @@ public class MappedFile extends ReferenceResource {
      * @return The current flushed position
      */
     public int flush(final int flushLeastPages) {
-        if (this.isAbleToFlush(flushLeastPages)) {//是否可以刷盘
+        /**
+         * isAbleToFlush     是否可以刷盘
+         */
+        if (this.isAbleToFlush(flushLeastPages)) {
             if (this.hold()) {
                 int value = getReadPosition();//获取
 
                 try {
                     /**
-                     * force将内存中的数据刷到磁盘
+                     * force将内存中的数据刷到磁盘 TODO
                      */
                     //We only append data to fileChannel or mappedByteBuffer, never both.
                     if (writeBuffer != null || this.fileChannel.position() != 0) {
@@ -408,6 +414,11 @@ public class MappedFile extends ReferenceResource {
         }
     }
 
+    /**
+     * 同步刷盘传入的是 0 。一定会进行刷新
+     * @param flushLeastPages
+     * @return
+     */
     private boolean isAbleToFlush(final int flushLeastPages) {
         int flush = this.flushedPosition.get();
         int write = getReadPosition();

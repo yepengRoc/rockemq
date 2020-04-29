@@ -368,11 +368,22 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
 
-
+    /**
+     * 同步调用方法
+     * @param addr
+     * @param request
+     * @param timeoutMillis
+     * @return
+     * @throws InterruptedException
+     * @throws RemotingConnectException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     */
     @Override
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
         long beginStartTime = System.currentTimeMillis();
+        //创建一个通道
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
             try {
@@ -447,6 +458,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
                         this.namesrvAddrChoosed.set(newAddr);
                         log.info("new name server is chosen. OLD: {} , NEW: {}. namesrvIndex = {}", addr, newAddr, namesrvIndex);
+                        //真正创建 channel的地方 TODO
                         Channel channelNew = this.createChannel(newAddr);
                         if (channelNew != null) {
                             return channelNew;
@@ -478,7 +490,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 cw = this.channelTables.get(addr);
                 if (cw != null) {
 
-                    if (cw.isOK()) {
+                    if (cw.isOK()) {//关闭
                         cw.getChannel().close();
                         this.channelTables.remove(addr);
                         createNewConnection = true;
@@ -508,6 +520,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         if (cw != null) {
+            /**
+             * 等待真正的连接到服务端再返回 。因为是异步的TODO
+             */
             ChannelFuture channelFuture = cw.getChannelFuture();
             if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
                 if (cw.isOK()) {

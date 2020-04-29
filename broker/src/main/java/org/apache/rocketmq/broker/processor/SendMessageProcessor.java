@@ -526,7 +526,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                                              final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
-        final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader)response.readCustomHeader();
+        final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader)response.readCustomHeader();//客户端 请求头 SMART时候有，这里略过
 
         response.setOpaque(request.getOpaque());
 
