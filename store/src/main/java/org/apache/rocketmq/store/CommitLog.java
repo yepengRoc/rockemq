@@ -654,6 +654,7 @@ public class CommitLog {
          * 获取最近的一个Commitlog文件的内存映射文件（零拷贝）
          * mappedFileQueue管理着这些连续的Commitlog文件
          * MappedFile和mappedFileQueue. 可以理解为一个高性能的磁盘 i/o接口
+         * TODO
          */
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();//文件的内存映射 TODO
         /**
@@ -674,6 +675,9 @@ public class CommitLog {
             /**
              * broker刚启动 mappedfile为空
              * 还有就是可能已经写满了。则创建一个mappedfile
+             *
+             * TODO getLastMappedFile 查看
+             * 创建新的文件-两个
              */
             if (null == mappedFile || mappedFile.isFull()) {
                 //需要看下
@@ -773,7 +777,7 @@ public class CommitLog {
                         + " client address: " + messageExt.getBornHostString());
                     putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
                 }
-            } else {//异步只唤醒一个刷盘线程。不用等待返回结果
+            } else {//如果设置不用等待刷盘结果。则只唤醒一个刷盘线程即可
                 service.wakeup();
             }
         }
@@ -1389,6 +1393,8 @@ public class CommitLog {
              * 这样就把一个文件的绝对物理位置给算出来了
              *fileFromOffset 一个文件的起始偏移量
              * byteBuffer.position() 文件的读位置
+             *
+             * fileFromOffset 就是文件的文件名
              */
             long wroteOffset = fileFromOffset + byteBuffer.position();
 
@@ -1396,7 +1402,7 @@ public class CommitLog {
             //创建全局唯一msgid 4字节ip 4字节端口号 8字节消息偏移量  一共16个字节。
             /**
              * 根据物理位置 broker地址算出来的
-             * ip地址  端口  在commitlog中的起始位置
+             * ip地址  端口  在commitlog中的起始位置 组成msgId
              */
             String msgId = MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(hostHolder), wroteOffset);
 
@@ -1542,7 +1548,9 @@ public class CommitLog {
                 this.msgStoreItemMemory.put(propertiesData);
 
             final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
-            // Write messages to the queue buffer  写入message到mappedfile
+            /**
+             * Write messages to the queue buffer  写入message到mappedfile
+              */
             byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
             /**
              *

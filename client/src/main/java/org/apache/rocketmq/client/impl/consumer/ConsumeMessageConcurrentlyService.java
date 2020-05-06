@@ -259,6 +259,9 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         while (it.hasNext()) {
             Map.Entry<MessageQueue, ProcessQueue> next = it.next();
             ProcessQueue pq = next.getValue();
+            /**
+             * 消息清除 TODO
+             */
             pq.cleanExpiredMsg(this.defaultMQPushConsumer);
         }
     }
@@ -442,7 +445,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 }
                 //回调。编码着写的监听
                 /**
-                 * 这里是一个回调结果
+                 * 这里是一个回调结果 真正执行
+                 * TODO 调用用户自己的代码
                  */
                 status = listener.consumeMessage(Collections.unmodifiableList(msgs), context);
             } catch (Throwable e) {
@@ -462,7 +466,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 }
             } else if (consumeRT >= defaultMQPushConsumer.getConsumeTimeout() * 60 * 1000) {
                 returnType = ConsumeReturnType.TIME_OUT;
-            } else if (ConsumeConcurrentlyStatus.RECONSUME_LATER == status) {
+            } else if (ConsumeConcurrentlyStatus.RECONSUME_LATER == status) {//稍后重试
                 returnType = ConsumeReturnType.FAILED;
             } else if (ConsumeConcurrentlyStatus.CONSUME_SUCCESS == status) {
                 returnType = ConsumeReturnType.SUCCESS;

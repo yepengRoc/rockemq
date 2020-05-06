@@ -114,7 +114,7 @@ public class AllocateMappedFileService extends ServiceThread {
         //真正的创建文件
         /**
          * 这里为什么又要get下。
-         *
+         * 创建好的文件会放入requestTable中 TODO.多线程
          *
          */
         AllocateRequest result = this.requestTable.get(nextFilePath);
@@ -197,7 +197,7 @@ public class AllocateMappedFileService extends ServiceThread {
                         log.warn("Use default implementation.");
                         mappedFile = new MappedFile(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
                     }
-                } else {
+                } else {//正常创建
                     mappedFile = new MappedFile(req.getFilePath(), req.getFileSize());
                 }
 
@@ -214,8 +214,8 @@ public class AllocateMappedFileService extends ServiceThread {
                     &&
                     this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {//预热
                     //文件预热
-                    /**
-                     * 文件预热
+                    /**c
+                     * 文件预热 TODO
                      */
                     mappedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
                         this.messageStore.getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile());
@@ -240,7 +240,7 @@ public class AllocateMappedFileService extends ServiceThread {
                 }
             }
         } finally {
-            if (req != null && isSuccess)
+            if (req != null && isSuccess)//唤醒获取文件线程
                 req.getCountDownLatch().countDown();
         }
         return true;

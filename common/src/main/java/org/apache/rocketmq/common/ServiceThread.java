@@ -133,6 +133,9 @@ public abstract class ServiceThread implements Runnable {
          * 会把hasNotified 改为false
          *
          * 初始化是false.等有数据放入时 改成true.要不会一直在这里cas
+         * 这个操作对broker端有用。客户端没有交换的动作
+         *
+         * 默认第一次进来是 false,因为也没有数据，所以不用进行置换
          */
         if (hasNotified.compareAndSet(true, false)) {//设置失败。说明已经执行过唤醒了。
             /**
@@ -150,6 +153,7 @@ public abstract class ServiceThread implements Runnable {
         } catch (InterruptedException e) {
             log.error("Interrupted", e);
         } finally {
+            //等待超时进行一次置换
             hasNotified.set(false);
             this.onWaitEnd();
         }

@@ -256,7 +256,7 @@ public class MappedFileQueue {
             MappedFile mappedFile = null;
             /**
              * 优先使用allocateMappedFileService 创建映射文件，因为是预分配方式，性能很高
-             * 如果上述分配失败，则使用new创建
+             * 如果上述分配失败，则使用new创建 TODO
              */
             if (this.allocateMappedFileService != null) {
                 mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
@@ -499,6 +499,7 @@ public class MappedFileQueue {
             long tmpTimeStamp = mappedFile.getStoreTimestamp();
             /**
              * 真正刷盘的地方 写入到PAGE_CACH  TODO
+             * flush 方法
              */
             int offset = mappedFile.flush(flushLeastPages);
             long where = mappedFile.getFileFromOffset() + offset;

@@ -81,9 +81,15 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
 
                 RemotingCommand response;
+                /**
+                 * 批量发送 TODO
+                 */
                 if (requestHeader.isBatch()) {//批量发送
                     response = this.sendBatchMessage(ctx, request, mqtraceContext, requestHeader);
                 } else {//单条发送
+                    /**
+                     * 单条信息发送 TODO
+                     */
                     response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
                 }
 
@@ -146,7 +152,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             response.setRemark(null);
             return response;
         }
-
+        /**
+         * 生成retry topic名称  %RETRY%+组名
+         *
+         */
         String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
         int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % subscriptionGroupConfig.getRetryQueueNums();
 
@@ -156,6 +165,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
         /**
          * 获取topic配置
+         * newTopic
+         * %RETRY%+组名 消费者会通过心跳传输至broker端
          */
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
             newTopic,
@@ -193,7 +204,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgExt.setWaitStoreMsgOK(false);
         //获取delevlev
         int delayLevel = requestHeader.getDelayLevel();
-
+        /**
+         * 超过重试最大次数，进入死信队列
+         */
         int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
         if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
             maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
@@ -240,7 +253,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
         MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
-        //消息丢回到messagestore
+        /**
+         * 消息丢回到messagestore
+         */
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         if (putMessageResult != null) {
             switch (putMessageResult.getPutMessageStatus()) {

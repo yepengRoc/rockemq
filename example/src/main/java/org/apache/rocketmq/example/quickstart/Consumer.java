@@ -56,6 +56,7 @@ public class Consumer {
 
         /*
          * Subscribe one more more topics to consume.
+         * 订阅哪个topic
          */
         consumer.subscribe("TopicTest", "*");
 

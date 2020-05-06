@@ -183,9 +183,13 @@ public class DefaultMessageStore implements MessageStore {
         if (messageStoreConfig.isTransientStorePoolEnable()) {//堆外内存池
             this.transientStorePool.init();
         }
-
+        /**
+         * 创建 mmapedFile 线程 TODO
+         */
         this.allocateMappedFileService.start();
-
+        /**
+         *
+         */
         this.indexService.start();
         /**
          * 构建consume 和index
@@ -241,7 +245,7 @@ public class DefaultMessageStore implements MessageStore {
                 //索引文件初始化
                 this.indexService.load(lastExitOK);
                 /**
-                 * 如果是异常退出，则需要对文件进行恢复
+                 * 如果是异常退出，则需要对文件进行恢复 TODO
                  */
                 this.recover(lastExitOK);
 
@@ -312,6 +316,9 @@ public class DefaultMessageStore implements MessageStore {
              * 设置reput的位置，启动reput 线程
              */
             this.reputMessageService.setReputFromOffset(maxPhysicalPosInLogicQueue);
+            /**
+             * 启动reputMessage TODO
+             */
             this.reputMessageService.start();
 
             /**
@@ -707,7 +714,7 @@ public class DefaultMessageStore implements MessageStore {
                         long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE
                             * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
                         /**
-                         * 如果查找的信息太老了。需要把文件加载的磁盘上。需要从slave上获取 TODO.
+                         * 如果查找的信息太老了。需要把文件加载到内存中。需要从slave上获取 TODO.
                          * 则客户端向slave 发送请求
                          */
                         getResult.setSuggestPullingFromSlave(diff > memory);
@@ -1996,8 +2003,9 @@ public class DefaultMessageStore implements MessageStore {
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
                                         && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()) {
                                         /**
-                                         * 如果是长轮训。通知broker端挂起的 拉取请求消息到来了 TODO
-                                         *
+                                         * 如果是长轮训。通知broker端挂起的拉取请求消息到来了 TODO
+                                         * 在客户端进行消息拉取的时候，如果没有消息则挂起等待
+                                         * 超时或者消息到来
                                          */
                                         DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
                                             dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,

@@ -52,6 +52,7 @@ public class RebalancePushImpl extends RebalanceImpl {
         /**
          * When rebalance result changed, should update subscription's version to notify broker.
          * Fix: inconsistency subscription may lead to consumer miss messages.
+         * 不一致的订阅信息会导致消费消息丢失
          */
         SubscriptionData subscriptionData = this.subscriptionInner.get(topic);
         long newVersion = System.currentTimeMillis();
@@ -80,6 +81,7 @@ public class RebalancePushImpl extends RebalanceImpl {
         // notify broker
         /**
          * 发送心跳 TODO
+         * 通知broker
          */
         this.getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
     }

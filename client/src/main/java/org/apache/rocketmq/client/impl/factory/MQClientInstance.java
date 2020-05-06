@@ -134,7 +134,10 @@ public class MQClientInstance {
         this.nettyClientConfig = new NettyClientConfig();
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
         this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
-        this.clientRemotingProcessor = new ClientRemotingProcessor(this);
+        /**
+         * 客户端的服务交互处理
+         */
+        this.clientRemotingProcessor = new ClientRemotingProcessor(this);//
         //注册处理器
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook, clientConfig);
         /**
@@ -153,7 +156,7 @@ public class MQClientInstance {
         //TODO 负载线程
         this.rebalanceService = new RebalanceService(this);
         //生产者。说明是 同一个jvm中是共用一个clientinstance
-        this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
+        this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);//内部生产者
         this.defaultMQProducer.resetClientConfig(clientConfig);
         //消费状态管理-- 广播模式是自己管理自己的消费进度
         this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
@@ -252,7 +255,7 @@ public class MQClientInstance {
                     // Start rebalance service  负载均衡
                     this.rebalanceService.start();//cosumer 使用
                     // Start push service 推送消息
-                    this.defaultMQProducer.getDefaultMQProducerImpl().start(false);//从新进行一遍赋值
+                    this.defaultMQProducer.getDefaultMQProducerImpl().start(false);//再次启动
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;
                     break;
@@ -477,7 +480,7 @@ public class MQClientInstance {
      * 生产者向所有的brokerf发送心跳
      */
     public void sendHeartbeatToAllBrokerWithLock() {
-        if (this.lockHeartbeat.tryLock()) {
+        if (this.lockHeartbeat.tryLock()) {//生产者和消费者可能会共用一个客户端，都会进行心跳发送
             try {
                 this.sendHeartbeatToAllBroker();
                 this.uploadFilterClassSource();
@@ -544,7 +547,7 @@ public class MQClientInstance {
          * 这个地方 心跳包里面有订阅的信息  -TODO
          * 通过心跳包去更新订阅信息
          */
-        final HeartbeatData heartbeatData = this.prepareHeartbeatData();
+        final HeartbeatData heartbeatData = this.prepareHeartbeatData();//准备心跳数据
         final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
         final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();
         if (producerEmpty && consumerEmpty) {
@@ -570,6 +573,7 @@ public class MQClientInstance {
                             }
 
                             try {
+                                //进行消息发送
                                 int version = this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
                                 if (!this.brokerVersionTable.containsKey(brokerName)) {
                                     this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
@@ -732,8 +736,8 @@ public class MQClientInstance {
             if (impl != null) {
                 ConsumerData consumerData = new ConsumerData();
                 consumerData.setGroupName(impl.groupName());
-                consumerData.setConsumeType(impl.consumeType());
-                consumerData.setMessageModel(impl.messageModel());
+                consumerData.setConsumeType(impl.consumeType());//消费类型
+                consumerData.setMessageModel(impl.messageModel());//
                 consumerData.setConsumeFromWhere(impl.consumeFromWhere());//下一次开始消费的位置
                 consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());//订阅消息
                 consumerData.setUnitMode(impl.isUnitMode());
@@ -750,7 +754,7 @@ public class MQClientInstance {
             MQProducerInner impl = entry.getValue();
             if (impl != null) {
                 ProducerData producerData = new ProducerData();
-                producerData.setGroupName(entry.getKey());
+                producerData.setGroupName(entry.getKey());//生产者组名
 
                 heartbeatData.getProducerDataSet().add(producerData);
             }
@@ -1018,6 +1022,9 @@ public class MQClientInstance {
             MQConsumerInner impl = entry.getValue();
             if (impl != null) {
                 try {
+                    /**
+                     * rebalance的地方
+                     */
                     impl.doRebalance();
                 } catch (Throwable e) {
                     log.error("doRebalance exception", e);
@@ -1122,6 +1129,9 @@ public class MQClientInstance {
 
         if (null != brokerAddr) {
             try {
+                /**
+                 * 同步从 broker上获取
+                 */
                 return this.mQClientAPIImpl.getConsumerIdListByGroup(brokerAddr, group, 3000);
             } catch (Exception e) {
                 log.warn("getConsumerIdListByGroup exception, " + brokerAddr + " " + group, e);
@@ -1136,7 +1146,7 @@ public class MQClientInstance {
         if (topicRouteData != null) {
             List<BrokerData> brokers = topicRouteData.getBrokerDatas();
             if (!brokers.isEmpty()) {
-                int index = random.nextInt(brokers.size());
+                int index = random.nextInt(brokers.size());//随机一个broker地址
                 BrokerData bd = brokers.get(index % brokers.size());
                 return bd.selectBrokerAddr();
             }

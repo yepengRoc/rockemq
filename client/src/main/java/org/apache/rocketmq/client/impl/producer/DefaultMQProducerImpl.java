@@ -186,12 +186,18 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 this.serviceState = ServiceState.START_FAILED;
                 //检查配置信息
                 this.checkConfig();
-                //如果是内部生产组，则跟换实例名为pid 线程id
+                /**
+                 * 如果不是内部生产组，则跟换实例名为pid 线程id
+                 * TODO !this.defaultMQProducer
+                 */
+
                 if (!this.defaultMQProducer.getProducerGroup().equals(MixAll.CLIENT_INNER_PRODUCER_GROUP)) {
                     //改变client中的 instanceName 为进程id
                     this.defaultMQProducer.changeInstanceNameToPID();
                 }
-                //创建一个客户端
+                /**
+                 * 创建一个客户端
+                 */
                 this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQProducer, rpcHook);
                 //注册生产者组
                 boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
@@ -618,7 +624,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             case SYNC:
                                 if (sendResult.getSendStatus() != SendStatus.SEND_OK) {
                                     /**
-                                     * 选择其他broker进行重试
+                                     * 选择其他broker进行重试.如果配置了此信息的话
+                                     * 否则就直接返回
                                      */
                                     if (this.defaultMQProducer.isRetryAnotherBrokerWhenNotStoreOK()) {
                                         continue;
@@ -671,6 +678,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             /**
                              * //异步发送不走这里。如果broker 发生系统繁忙，page_cache被锁时间太长。这里没有相应的状态
                              * 进行判断重试 TODO
+                             * busy
+                             * slave_not_avaliable
                              */
                             case ResponseCode.TOPIC_NOT_EXIST:
                             case ResponseCode.SERVICE_NOT_AVAILABLE:
@@ -819,7 +828,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     sysFlag |= MessageSysFlag.COMPRESSED_FLAG;
                     msgBodyCompressed = true;
                 }
-
+                //事务消息的 设置sysFlag
                 final String tranMsg = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
                 if (tranMsg != null && Boolean.parseBoolean(tranMsg)) {
                     sysFlag |= MessageSysFlag.TRANSACTION_PREPARED_TYPE;
@@ -873,7 +882,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 requestHeader.setUnitMode(this.isUnitMode());
                 requestHeader.setBatch(msg instanceof MessageBatch);
                 /**
-                 * 消息重试逻辑。设置重试次数
+                 * 消息重试逻辑。设置重试次数  消费端使用
                  */
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     String reconsumeTimes = MessageAccessor.getReconsumeTime(msg);
@@ -1290,7 +1299,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
          */
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
         try {
-            sendResult = this.send(msg);//同步发送
+            /**
+             * 同步发送
+             */
+            sendResult = this.send(msg);
         } catch (Exception e) {
             throw new MQClientException("send message Exception", e);
         }

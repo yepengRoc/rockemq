@@ -180,7 +180,9 @@ public class BrokerOuterAPI {
                     }
                 });
             }
-
+            /**
+             * 所有注册结束后，才返回
+             */
             try {
                 countDownLatch.await(timeoutMills, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {

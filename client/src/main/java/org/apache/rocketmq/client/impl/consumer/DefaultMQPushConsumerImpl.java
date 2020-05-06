@@ -325,6 +325,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                 //TODO
                                 /**
                                  * 记录拿回来的消息
+                                 * TODO 存储在红黑树中
                                  */
                                 boolean dispatchToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
                                 /**
@@ -535,7 +536,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             String brokerAddr = (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName)
                 : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
             /**
-             * 真正重试消息的地方
+             * 真正重试消息的地方 TODO
              */
             this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg,
                 this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000, getMaxReconsumeTimes());
@@ -602,10 +603,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 this.copySubscription();
 
                 if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.CLUSTERING) {
-                    this.defaultMQPushConsumer.changeInstanceNameToPID();
+                    this.defaultMQPushConsumer.changeInstanceNameToPID();//进程id
                 }
                 /**
-                 * 这一步 会初始化拉取线程
+                 * 这一步 会初始化拉取线程 TODO
                  */
                 this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPushConsumer, this.rpcHook);
 
@@ -627,6 +628,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             this.offsetStore = new LocalFileOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
                             break;
                         case CLUSTERING:
+                            //消息存储是本地，还是远程
                             this.offsetStore = new RemoteBrokerOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
                             break;
                         default:
@@ -635,6 +637,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.defaultMQPushConsumer.setOffsetStore(this.offsetStore);
                 }
                 //加载消费进度
+                /**
+                 * 如果是广播模式，则从本地加载。集群模式。是空实现
+                 *
+                 */
                 this.offsetStore.load();
 
                 if (this.getMessageListenerInner() instanceof MessageListenerOrderly) {
@@ -643,6 +649,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         new ConsumeMessageOrderlyService(this, (MessageListenerOrderly) this.getMessageListenerInner());
                 } else if (this.getMessageListenerInner() instanceof MessageListenerConcurrently) {
                     this.consumeOrderly = false;
+                    /**
+                     * 初始化一个消息消费服务
+                     */
                     this.consumeMessageService =
                         new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
                 }
@@ -660,9 +669,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         null);
                 }
                 /**
-                 * 客户端启动
+                 * 客户端启动 TODO
                  */
-
                 mQClientFactory.start();
                 log.info("the consumer [{}] start OK.", this.defaultMQPushConsumer.getConsumerGroup());
                 this.serviceState = ServiceState.RUNNING;

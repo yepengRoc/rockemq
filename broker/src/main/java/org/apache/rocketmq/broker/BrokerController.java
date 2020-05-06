@@ -177,7 +177,13 @@ public class BrokerController {
         this.consumerOffsetManager = new ConsumerOffsetManager(this);
         this.topicConfigManager = new TopicConfigManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
+        /**
+         * 拉取请求放在这个里面 TODO
+         */
         this.pullRequestHoldService = new PullRequestHoldService(this);
+        /**
+         * messa 到来 TODO
+         */
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService);
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener);
@@ -258,6 +264,9 @@ public class BrokerController {
                 //load plugin
                 MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
                 this.messageStore = MessageStoreFactory.build(context, this.messageStore);
+                /**
+                 *逻辑
+                 */
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
             } catch (IOException e) {
                 result = false;
@@ -318,7 +327,9 @@ public class BrokerController {
                 TimeUnit.MILLISECONDS,
                 this.heartbeatThreadPoolQueue,
                 new ThreadFactoryImpl("HeartbeatThread_", true));
-            //
+            /**
+             * 事务消息执行线程池
+             */
             this.endTransactionExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getEndTransactionThreadPoolNums(),
                 this.brokerConfig.getEndTransactionThreadPoolNums(),
@@ -349,7 +360,7 @@ public class BrokerController {
                 }
             }, initialDelay, period, TimeUnit.MILLISECONDS);
             /**
-             * 消息消费进度管理
+             * 消息消费进度管理-持久化到磁盘
              */
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
@@ -486,6 +497,9 @@ public class BrokerController {
                     log.warn("FileWatchService created error, can't load the certificate dynamically");
                 }
             }
+            /**
+             * 事务消息回查 TODO
+             */
             initialTransaction();
             initialAcl();
             initialRpcHooks();
@@ -586,8 +600,8 @@ public class BrokerController {
          * ClientManageProcessor
          */
         ClientManageProcessor clientProcessor = new ClientManageProcessor(this);
-        this.remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor, this.heartbeatExecutor);
-        this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor, this.heartbeatExecutor);//心跳
+        this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);//注销
         this.remotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientProcessor, this.clientManageExecutor);
 
         this.fastRemotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor, this.heartbeatExecutor);
@@ -843,12 +857,19 @@ public class BrokerController {
     public void start() throws Exception {
         /**
          * 关注下 TODO
+         *
+         * reputMessageService
+         * reputMessageService
+         * flushConsumeQueueService
+         * 启动
+         *
          */
         if (this.messageStore != null) {
             this.messageStore.start();
         }
         /**
          * 关注下 TODO
+         * nettye服务端
          */
         if (this.remotingServer != null) {
             this.remotingServer.start();
@@ -865,12 +886,15 @@ public class BrokerController {
         }
         /**
          * 关注下 TODO
+         * 客户端
          */
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.start();
         }
         /**
          * 关注下 TODO
+         * 长轮训 如果客户端来拉消息。但是没有，这个时候就需要挂起
+         *
          */
         if (this.pullRequestHoldService != null) {
             this.pullRequestHoldService.start();
@@ -893,7 +917,7 @@ public class BrokerController {
             handleSlaveSynchronize(messageStoreConfig.getBrokerRole());
         }
         /**
-         * 向nameserver注册信息TODO
+         * 向nameserver注册信息 TODO
          */
         this.registerBrokerAll(true, false, true);
         /**
@@ -960,7 +984,9 @@ public class BrokerController {
             this.brokerConfig.getBrokerName(),
             this.brokerConfig.getBrokerId(),
             this.brokerConfig.getRegisterBrokerTimeoutMills())) {
-            //真正注册的地方 TODO
+            /**
+             * 真正注册的地方 TODO
+             */
             doRegisterBrokerAll(checkOrderConfig, oneway, topicConfigWrapper);
         }
     }

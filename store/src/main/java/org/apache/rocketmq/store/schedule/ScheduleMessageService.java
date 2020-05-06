@@ -262,7 +262,7 @@ public class ScheduleMessageService extends ConfigManager {
 
         /**
          * 修正时间 TODO
-         * 因为delayLevelTable 中的数据是可以改变de.如果后序改变了配置，则从新进行修正
+         * 因为delayLevelTable 中的数据是可以改变的.如果后序改变了配置，则从新进行修正
          * @return
          */
         private long correctDeliverTimestamp(final long now, final long deliverTimestamp) {

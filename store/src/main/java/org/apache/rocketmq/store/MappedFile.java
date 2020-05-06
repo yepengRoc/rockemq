@@ -370,6 +370,11 @@ public class MappedFile extends ReferenceResource {
         return this.getFlushedPosition();
     }
 
+    /**
+     * 堆外内存刷到 commitlog中 TODO
+     * @param commitLeastPages
+     * @return
+     */
     public int commit(final int commitLeastPages) {
         if (writeBuffer == null) {
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
@@ -377,7 +382,13 @@ public class MappedFile extends ReferenceResource {
         }
         if (this.isAbleToCommit(commitLeastPages)) {
             if (this.hold()) {
+                /**
+                 * 刷到commitLog
+                 */
                 commit0(commitLeastPages);
+                /**
+                 * 释放堆外内存
+                 */
                 this.release();
             } else {
                 log.warn("in commit, hold failed, commit offset = " + this.committedPosition.get());
@@ -595,15 +606,17 @@ public class MappedFile extends ReferenceResource {
              */
             byteBuffer.put(i, (byte) 0);
             // force flush when flush disk type is sync
-            if (type == FlushDiskType.SYNC_FLUSH) {//同步刷新
+            if (type == FlushDiskType.SYNC_FLUSH) {//同步刷新.超过一定的页，则刷盘一次
                 if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
                     flush = i;
                     mappedByteBuffer.force();
                 }
             }
-
-            // prevent gc linux是时间片分配 windows是抢占式。如果占用会一直占用。这里一次刷4k 刷1g可能会占用很久
-            if (j % 1000 == 0) {//每执行1000个内存页就释放cpu的执行权，给其它线程执行的机会，当前线程进入准备状态，从新获取
+            /**
+             * prevent gc linux是时间片分配 windows是抢占式。如果占用会一直占用。这里一次刷4k 刷1g可能会占用很久
+             * 每执行1000个内存页就释放cpu的执行权，给其它线程执行的机会，当前线程进入准备状态，从新获取
+             */
+            if (j % 1000 == 0) {
                 log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
                 time = System.currentTimeMillis();
                 try {
@@ -615,7 +628,10 @@ public class MappedFile extends ReferenceResource {
         }
 
         // force flush when prepare load finished
-        if (type == FlushDiskType.SYNC_FLUSH) {
+        /**
+         * 如果是同步刷盘，这个时候就要落盘一次 TODO
+         */
+        if (type == FlushDiskType.SYNC_FLUSH) {//如果是同步刷盘
             log.info("mapped file warm-up done, force to disk, mappedFile={}, costTime={}",
                 this.getFileName(), System.currentTimeMillis() - beginTime);
             mappedByteBuffer.force();

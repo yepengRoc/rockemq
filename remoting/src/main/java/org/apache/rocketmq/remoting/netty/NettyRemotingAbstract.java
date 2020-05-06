@@ -199,6 +199,9 @@ public abstract class NettyRemotingAbstract {
      * @param cmd request command.
      */
     public void processRequestCommand(final ChannelHandlerContext ctx, final RemotingCommand cmd) {
+        /**
+         * 获取pairs
+         */
         final Pair<NettyRequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode());
         final Pair<NettyRequestProcessor, ExecutorService> pair = null == matched ? this.defaultRequestProcessor : matched;
         final int opaque = cmd.getOpaque();
@@ -214,7 +217,7 @@ public abstract class NettyRemotingAbstract {
 
                         doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
 
-                        if (!cmd.isOnewayRPC()) {
+                        if (!cmd.isOnewayRPC()) {//不是 oneway
                             if (response != null) {
                                 response.setOpaque(opaque);
                                 response.markResponseType();
@@ -414,6 +417,9 @@ public abstract class NettyRemotingAbstract {
 
         for (ResponseFuture rf : rfList) {
             try {
+                /**
+                 * 执行异步发送 的回调函数TODO
+                 */
                 executeInvokeCallback(rf);
             } catch (Throwable e) {
                 log.warn("scanResponseTable, operationComplete Exception", e);

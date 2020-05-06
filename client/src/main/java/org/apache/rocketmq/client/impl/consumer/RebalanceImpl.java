@@ -262,6 +262,9 @@ public abstract class RebalanceImpl {
                  * 集群模式下的一个负载 TODO
                  */
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+                /**
+                 * 获取所有的客户端id ip@进程id
+                 */
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -337,7 +340,7 @@ public abstract class RebalanceImpl {
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet,
         final boolean isOrder) {
         boolean changed = false;
-
+        //
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<MessageQueue, ProcessQueue> next = it.next();
@@ -345,14 +348,14 @@ public abstract class RebalanceImpl {
             ProcessQueue pq = next.getValue();
 
             if (mq.getTopic().equals(topic)) {
-                if (!mqSet.contains(mq)) {
+                if (!mqSet.contains(mq)) {//不包含当前消息队列，则进行失效
                     pq.setDropped(true);
                     if (this.removeUnnecessaryMessageQueue(mq, pq)) {
                         it.remove();
                         changed = true;
                         log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
                     }
-                } else if (pq.isPullExpired()) {
+                } else if (pq.isPullExpired()) {//过期
                     switch (this.consumeType()) {
                         case CONSUME_ACTIVELY:
                             break;
@@ -376,7 +379,7 @@ public abstract class RebalanceImpl {
          */
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
         for (MessageQueue mq : mqSet) {
-            if (!this.processQueueTable.containsKey(mq)) {
+            if (!this.processQueueTable.containsKey(mq)) {//不包含当前队列
                 if (isOrder && !this.lock(mq)) {
                     log.warn("doRebalance, {}, add a new mq failed, {}, because lock failed", consumerGroup, mq);
                     continue;
@@ -385,7 +388,7 @@ public abstract class RebalanceImpl {
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue();
                 /**
-                 * 计算从哪里消费
+                 * 计算从哪里消费 TODO
                  */
                 long nextOffset = this.computePullFromWhere(mq);
                 //大于0 说明有消息供消费
@@ -410,7 +413,7 @@ public abstract class RebalanceImpl {
             }
         }
         /**
-         * 分发拉取请求
+         * 分发拉取请求 TODO
          */
         this.dispatchPullRequest(pullRequestList);
 

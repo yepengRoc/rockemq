@@ -48,6 +48,11 @@ public class ResponseFuture {
         this.once = once;
     }
 
+    /**
+     * 异步发送的时候会设置一个 acquire 和 一个acquieronce对象，
+     * TODO
+     * 查看 mqclientApiImpl
+     */
     public void executeInvokeCallback() {
         if (invokeCallback != null) {
             if (this.executeCallbackOnlyOnce.compareAndSet(false, true)) {

@@ -391,7 +391,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
                     this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
                     /**
-                     * TODO 使用堆外内存还是 堆内存。可以配置实现
+                     * TODO 使用堆外内存还是 堆内存。可以配置实现。
                      */
                     if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
                         final long beginTimeMills = this.brokerController.getMessageStore().now();
@@ -404,6 +404,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         try {
                             FileRegion fileRegion =
                                 new ManyMessageTransfer(response.encodeHeader(getMessageResult.getBufferTotalSize()), getMessageResult);
+                            /**
+                             * 看下刷新逻辑 TODO
+                             */
                             channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
                                 @Override
                                 public void operationComplete(ChannelFuture future) throws Exception {
@@ -424,6 +427,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 case ResponseCode.PULL_NOT_FOUND:
                     /**
                      * 消息没有发现  TODO
+                     * 允许挂起 且有挂起标志
                      */
                     if (brokerAllowSuspend && hasSuspendFlag) {
                         long pollingTimeMills = suspendTimeoutMillisLong;
@@ -440,7 +444,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                          * 把请求进行挂起 TODO
                          */
                         this.brokerController.getPullRequestHoldService().suspendPullRequest(topic, queueId, pullRequest);
-                        response = null;
+                        response = null;//赋值为空
                         break;
                     }
 

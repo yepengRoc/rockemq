@@ -1022,7 +1022,7 @@ public class MQClientAPIImpl {
     ) throws RemotingException, MQBrokerException, InterruptedException {
         ConsumerSendMsgBackRequestHeader requestHeader = new ConsumerSendMsgBackRequestHeader();
         /**
-         * 看下这个地方的CONSUMER_SEND_MSG_BACK 去broker端进行查看TODO
+         * 看下这个地方的CONSUMER_SEND_MSG_BACK 去broker端进行查看 TODO
          */
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
 

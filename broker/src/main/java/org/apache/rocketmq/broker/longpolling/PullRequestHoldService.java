@@ -153,7 +153,7 @@ public class PullRequestHoldService extends ServiceThread {
                         if (match) {
                             try {
                                 /**
-                                 * 通过一个线程池，再次提交拉取请求
+                                 * 通过一个线程池，再次提交拉取请求 TODO
                                  */
                                 this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
                                     request.getRequestCommand());

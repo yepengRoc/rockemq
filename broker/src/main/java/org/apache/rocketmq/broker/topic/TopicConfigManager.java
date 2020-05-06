@@ -260,6 +260,9 @@ public class TopicConfigManager extends ConfigManager {
                     this.topicConfigTable.put(topic, topicConfig);
                     createNew = true;
                     this.dataVersion.nextVersion();
+                    /**
+                     * 持久化到本地磁盘
+                     */
                     this.persist();
                 } finally {
                     this.lockTopicConfigTable.unlock();

@@ -51,6 +51,8 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
  * Technically speaking, this push client is virtually a wrapper of the underlying pull service. Specifically, on
  * arrival of messages pulled from brokers, it roughly invokes the registered callback handler to feed the messages.
  * </p>
+ * 在大多数情况下，这是最推荐使用消息的类。</ p>从技术上讲，此推送客户端实际上是基础拉服务的包装。具体来说，
+ * 在从代理提取的消息到达时，它会粗略地调用注册的回调处理程序来馈送消息。
  *
  * See quickstart/Consumer in the example module for a typical usage.
  * </p>
@@ -343,6 +345,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param consumerGroup Consumer group.
      */
     public DefaultMQPushConsumer(final String consumerGroup) {
+        /**
+         * 分配一个消费队列
+         */
         this(consumerGroup, null, new AllocateMessageQueueAveragely());
     }
 

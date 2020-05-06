@@ -76,7 +76,7 @@ public class MQFaultStrategy {
                         if (null == lastBrokerName || mq.getBrokerName().equals(lastBrokerName))
                             return mq;
                         /**
-                         * 逻辑错误
+                         * 逻辑错误 TODO
                          * mq.getBrokerName().equals(lastBrokerName)  应该是 不等于
                          * if (null == lastBrokerName || !mq.getBrokerName().equals(lastBrokerName))
                          *                             return mq;
