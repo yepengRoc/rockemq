@@ -98,7 +98,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private final ArrayList<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
     private final RPCHook rpcHook;
     protected BlockingQueue<Runnable> checkRequestQueue;
-    protected ExecutorService checkExecutor;
+    protected ExecutorService checkExecutor;//给事务使用的
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
     private ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<CheckForbiddenHook>();
@@ -147,6 +147,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (producer.getExecutorService() != null) {
             this.checkExecutor = producer.getExecutorService();
         } else {
+            /**
+             * 本地最多缓存2000 事务消息 TODO
+             */
             this.checkRequestQueue = new LinkedBlockingQueue<Runnable>(producer.getCheckRequestHoldMax());
             /**
              * 本地事务状态检查
@@ -570,6 +573,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
          *  broker可以多台部署，每台有4个队列。主从 就有8个队列。
          *  客户端需要选择一个队列进行发送
          *  从这个里面找到一个
+         *  TODO
          */
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
@@ -822,7 +826,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             try {
                 //for MessageBatch,ID has been set in the generating process
                 if (!(msg instanceof MessageBatch)) {
-                    MessageClientIDSetter.setUniqID(msg);//批量为每一个消息生成一个msgeid
+                    MessageClientIDSetter.setUniqID(msg);//批量为每一个消息生成一个msgeid 。有ip和时间
                 }
 
                 int sysFlag = 0;
@@ -862,7 +866,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     if (isTrans != null && isTrans.equals("true")) {
                         context.setMsgType(MessageType.Trans_Msg_Half);
                     }
-
+                    /**
+                     * 延时投递 TODO
+                     */
                     if (msg.getProperty("__STARTDELIVERTIME") != null || msg.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null) {
                         context.setMsgType(MessageType.Delay_Msg);
                     }
@@ -877,7 +883,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 requestHeader.setDefaultTopic(this.defaultMQProducer.getCreateTopicKey());
                 requestHeader.setDefaultTopicQueueNums(this.defaultMQProducer.getDefaultTopicQueueNums());
                 requestHeader.setQueueId(mq.getQueueId());
-                requestHeader.setSysFlag(sysFlag);
+                requestHeader.setSysFlag(sysFlag);//可以记录是否是事务消息
                 requestHeader.setBornTimestamp(System.currentTimeMillis());
                 requestHeader.setFlag(msg.getFlag());
                 requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
@@ -1291,7 +1297,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         SendResult sendResult = null;
         /**
-         * 标识是事务消息
+         * 标识是事务消息 TODO
          */
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
         /**
@@ -1322,6 +1328,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     if (sendResult.getTransactionId() != null) {
                         msg.putUserProperty("__transactionId__", sendResult.getTransactionId());
                     }
+                    /**
+                     * transactionId 由broker端生成。 放入msg中
+                     */
                     String transactionId = msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
                     if (null != transactionId && !"".equals(transactionId)) {
                         msg.setTransactionId(transactionId);
@@ -1330,10 +1339,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                      * 执行本地事务逻辑 TODO
                      * 因为历史原因，事务存在两种实现方式，所以要都判断到
                      */
-                    if (null != localTransactionExecuter) {
+                    if (null != localTransactionExecuter) {//废弃方法
                         localTransactionState = localTransactionExecuter.executeLocalTransactionBranch(msg, arg);
                     } else if (transactionListener != null) {
                         log.debug("Used new transaction API");
+                        /**
+                         * 执行本地事务
+                         */
                         localTransactionState = transactionListener.executeLocalTransaction(msg, arg);
                     }
                     if (null == localTransactionState) {
@@ -1396,7 +1408,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final SendResult sendResult,
         final LocalTransactionState localTransactionState,
         final Throwable localException) throws RemotingException, MQBrokerException, InterruptedException, UnknownHostException {
-        final MessageId id;
+        final MessageId id;//ip 和 物理消息偏移量
         if (sendResult.getOffsetMsgId() != null) {
             id = MessageDecoder.decodeMessageId(sendResult.getOffsetMsgId());
         } else {

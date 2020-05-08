@@ -97,6 +97,11 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             //随机打乱数组
             Collections.shuffle(tmpList);
             //排序 根据 是否可用  失败次数  时间 排序
+            /**
+             * 是否可用  再次检查是否到了可用时间
+             * 延迟级别 小的
+             * 最早可用时间
+             */
             Collections.sort(tmpList);
 
             final int half = tmpList.size() / 2;

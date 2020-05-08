@@ -695,6 +695,7 @@ public class MQClientInstance {
                              * 将topicRouteData转换为
                              *
                              * topic路由信息获取的地方   路由发布信息 TODO
+                             * 生产者使用
                              */
                             {
                                 TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
@@ -714,11 +715,13 @@ public class MQClientInstance {
                              * 路由订阅信息 TODO
                              * 也是根据对应的broker信息，构建对应的路由订阅信息
                              * 当然消在消费端，也会定时的从 broker拉取对应的订阅信息，进行本地比对，更新
+                             * 消费者使用
                              */
                             {
                                 Set<MessageQueue> subscribeInfo = topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                                 Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
                                 while (it.hasNext()) {
+                                    //每个消费者客户端都维护了一份topic订阅信息
                                     Entry<String, MQConsumerInner> entry = it.next();
                                     MQConsumerInner impl = entry.getValue();
                                     if (impl != null) {

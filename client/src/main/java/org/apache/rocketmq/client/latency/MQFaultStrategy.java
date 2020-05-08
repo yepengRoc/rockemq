@@ -83,7 +83,10 @@ public class MQFaultStrategy {
                          */
                     }
                 }
-                //如果不可用
+                /**
+                 * 如果都还没有到可用时间。
+                 * 则从 所有不可用的队列中选一个进行使用
+                 */
                 final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
                 int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
                 if (writeQueueNums > 0) {
@@ -93,13 +96,15 @@ public class MQFaultStrategy {
                         mq.setQueueId(tpInfo.getSendWhichQueue().getAndIncrement() % writeQueueNums);
                     }
                     return mq;
-                } else {
+                } else {//如果没有写队列，则移除掉
                     latencyFaultTolerance.remove(notBestBroker);
                 }
             } catch (Exception e) {
                 log.error("Error occurred when selecting message queue", e);
             }
-
+            /**
+             * 兜底，如果还是选不出来，则使用默认选择方式
+             */
             return tpInfo.selectOneMessageQueue();
         }
         //如果没有开启故障延迟机制

@@ -98,11 +98,17 @@ public class TopicPublishInfo {
                 MessageQueue mq = this.messageQueueList.get(pos);
                 /**
                  * 屏蔽掉上次失败的broker  channelTable
+                 * 不一定是失败，已经用过的 broker
+                 * 换一个broker发
                  */
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
                 }
             }
+            /**
+             * 如果就一个broker集群，这里兜底，还算选择自己。就是换了
+             * 一个 同一个broker上的消息队列
+             */
             return selectOneMessageQueue();
         }
     }
@@ -114,6 +120,7 @@ public class TopicPublishInfo {
         int index = this.sendWhichQueue.getAndIncrement();
         /**
          * 这里为什么会小于0
+         * 因为到达integer的最大值，则会是负数
          */
         int pos = Math.abs(index) % this.messageQueueList.size();
         if (pos < 0)

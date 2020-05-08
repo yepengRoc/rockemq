@@ -512,7 +512,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             responseHeader.setMsgId(putMessageResult.getAppendMessageResult().getMsgId());
             responseHeader.setQueueId(queueIdInt);
             responseHeader.setQueueOffset(putMessageResult.getAppendMessageResult().getLogicsOffset());
-
+            /**
+             * 进行消息响应  TODO
+             */
             doResponse(ctx, request, response);
 
             if (hasSendMessageHook()) {
@@ -608,7 +610,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         messageExtBatch.setStoreHost(this.getStoreHost());
         messageExtBatch.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes());
         /**
-         * 进行消息存储 TODO
+         * 进行批量消息处理的地方 TODO
          */
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessages(messageExtBatch);
         /**

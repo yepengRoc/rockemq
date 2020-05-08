@@ -458,6 +458,8 @@ public abstract class NettyRemotingAbstract {
                     responseFuture.setCause(f.cause());
                     /**
                      * 在回调里面对 responseFuture.waitResponse(timeoutMillis); 中的等待进行唤醒
+                     * TODO 这里进行唤醒
+                     * 因为是同步的，所以这里设置响应为null,因为发送线程会拿到结果返回。这里是给异步使用的
                      */
                     responseFuture.putResponse(null);
                     log.warn("send a request command to channel <" + addr + "> failed.");
