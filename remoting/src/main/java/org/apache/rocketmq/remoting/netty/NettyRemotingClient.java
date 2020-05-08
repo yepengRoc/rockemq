@@ -197,6 +197,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         /**
          * 处理相应请求 TODO
          * 生产者异步发送的时候，会把相应结果放入到一个responseTable中
+         * 定时处理请求
          */
         this.timer.scheduleAtFixedRate(new TimerTask() {
             @Override
