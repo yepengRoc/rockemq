@@ -186,7 +186,13 @@ public class TransactionalMessageBridge {
         return foundList;
     }
 
+    /**
+     * 事务消息存储 TODO
+     * @param messageInner
+     * @return
+     */
     public PutMessageResult putHalfMessage(MessageExtBrokerInner messageInner) {
+        //事务消息加工完后，处理流程和正常消息一样
         return store.putMessage(parseHalfMessageInner(messageInner));
     }
 
@@ -210,10 +216,18 @@ public class TransactionalMessageBridge {
          * TRANSACTION_PREPARED_TYPE和 TRANSACTION_ROLLBACK_TYPE的消息，这里重置为0，就不会影响
          * RMQ_SYS_TRANS_HALF_TOPIC 的consumeQueue的更新
          * 这样的消息也需要构建 cosumeQueue，所以这里设置为0
+         * TODO
+         * 从客户端发过的 syflag标识是事务消息，这里需要重置
          */
         msgInner.setSysFlag(
             MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), MessageSysFlag.TRANSACTION_NOT_TYPE));
+        /**
+         * 构建事务专有的TOPIC
+         */
         msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic());//设置事务topic
+        /**
+         * 事务性消息只有一个队列
+         */
         msgInner.setQueueId(0);//因为事务消息只有一个队列，所以queid 直接设置为0
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         return msgInner;

@@ -183,6 +183,7 @@ public class BrokerController {
         this.pullRequestHoldService = new PullRequestHoldService(this);
         /**
          * messa 到来 TODO
+         * 唤醒阻塞的客户端线程拉取消息
          */
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService);
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
@@ -194,7 +195,9 @@ public class BrokerController {
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
         this.filterServerManager = new FilterServerManager(this);
-
+        /**
+         * 从节点同步 TODO
+         */
         this.slaveSynchronize = new SlaveSynchronize(this);
 
         this.sendThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());
@@ -239,7 +242,9 @@ public class BrokerController {
      */
     public boolean initialize() throws CloneNotSupportedException {
         boolean result = this.topicConfigManager.load();
-
+        /**
+         * 从磁盘加载 三个文件到内存中 TODO
+         */
         result = result && this.consumerOffsetManager.load();
         result = result && this.subscriptionGroupManager.load();
         result = result && this.consumerFilterManager.load();

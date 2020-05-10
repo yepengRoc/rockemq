@@ -181,7 +181,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         }
         /**
          * 默认主题不能进行消息发送，仅仅提供路由查找
-         * topicn能否发送信息
+         * topic能否发送信息
          */
         if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
             String errorMsg = "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";

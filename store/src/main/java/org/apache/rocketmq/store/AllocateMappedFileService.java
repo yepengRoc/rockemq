@@ -68,6 +68,7 @@ public class AllocateMappedFileService extends ServiceThread {
             //是主节点，且设置了快速失败。快速失败的前提是临时存储池没有可用空间了
             if (this.messageStore.getMessageStoreConfig().isFastFailIfNoBufferInStorePool()
                 && BrokerRole.SLAVE != this.messageStore.getMessageStoreConfig().getBrokerRole()) { //if broker is slave, don't fast fail even no buffer in pool
+                //剩余容量 - requestQueue中还没有处理完的请求
                 canSubmitRequests = this.messageStore.getTransientStorePool().remainBufferNumbs() - this.requestQueue.size();
                 //有可用buffer
             }
@@ -115,7 +116,7 @@ public class AllocateMappedFileService extends ServiceThread {
         /**
          * 这里为什么又要get下。
          * 创建好的文件会放入requestTable中 TODO.多线程
-         *
+         * 等待第一个文件创建完毕
          */
         AllocateRequest result = this.requestTable.get(nextFilePath);
         try {

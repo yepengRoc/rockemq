@@ -172,7 +172,11 @@ public class ScheduleMessageService extends ConfigManager {
     }
 
     public boolean load() {
+        /**
+         * 加载每个延时队列
+         */
         boolean result = super.load();
+        //计算延时级别
         result = result && this.parseDelayLevel();
         return result;
     }
