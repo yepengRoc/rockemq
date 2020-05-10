@@ -910,7 +910,7 @@ public class BrokerController {
             this.filterServerManager.start();
         }
         /**
-         * dleger高高可用
+         * 如果沒有开启delger高可用 走普通HA TODO
          */
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
             startProcessorByHa(messageStoreConfig.getBrokerRole());//HA 主从复制
