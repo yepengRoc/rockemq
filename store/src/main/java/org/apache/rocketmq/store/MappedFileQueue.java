@@ -228,19 +228,19 @@ public class MappedFileQueue {
 
         if (mappedFileLast == null) {
             //从新计算一个文件的开头。例如 3.5 mod 1g之后是剩余的0.5 3.5-0.5 就是当前要创建文件的起始位置。
-            //暂时还不太清楚-可能恢复消息的时候也要用哪个
             /**
              * 计算将要创建映射文件的物理偏移量
              * 如果指定的startoffset不足mappedFileSize，则从offset 0 开始
              * 否则，从为mappedFilesize整数倍的offset开始
              */
-            createOffset = startOffset - (startOffset % this.mappedFileSize);
+            createOffset = startOffset - (startOffset % this.mappedFileSize);//计算创建文件的起始偏移量
         }
         //如果最后一个文件满了，则用最后一个文件的起始位置+ 系统设置的文件固定大小
         if (mappedFileLast != null && mappedFileLast.isFull()) {
             /**
              * 计算将要创建映射文件的物理偏移量
              * 偏移量等于 上一个commitlog文件的起始偏移量+commitlog文件大小
+             * 新文件的起始偏移量 = 当前最后一个文件的起始偏移量 + 默认一个commit文件的大小
              */
             createOffset = mappedFileLast.getFileFromOffset() + this.mappedFileSize;
         }

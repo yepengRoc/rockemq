@@ -610,6 +610,7 @@ public class CommitLog {
          * 事务性消息处理。定时消息机制
          *  重试消息机制 TODO
          *
+         * 非事务类型 或者是事务提交
          */
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
@@ -618,7 +619,7 @@ public class CommitLog {
              * 默认延时级别为3  TODO
              * retry
              */
-            if (msg.getDelayTimeLevel() > 0) {
+            if (msg.getDelayTimeLevel() > 0) {//延时消费--
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
                 }
@@ -630,6 +631,7 @@ public class CommitLog {
                 /**
                  * 更还queueId TODO
                  * 延时级别减1 为当前消息找一个队列
+                 * 系统会为每一个延时级别创建一个消息队列
                  */
                 queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
                 /**
@@ -680,7 +682,7 @@ public class CommitLog {
              * 创建新的文件-两个
              */
             if (null == mappedFile || mappedFile.isFull()) {
-                //需要看下
+                //需要看下 getLastMappedFile方法 TODO
                 mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
             }
             if (null == mappedFile) {

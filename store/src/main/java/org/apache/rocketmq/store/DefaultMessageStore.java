@@ -147,7 +147,9 @@ public class DefaultMessageStore implements MessageStore {
         this.brokerConfig = brokerConfig;//broker配置
         this.messageStoreConfig = messageStoreConfig;//message配置
         this.brokerStatsManager = brokerStatsManager;
-        //分配服务
+        /**
+         * 用于创建mappedFile文件
+         */
         this.allocateMappedFileService = new AllocateMappedFileService(this);//线程  -用于创建 mappedfile文件
         /**
          * 看下commitLog的初始  TODO
@@ -162,11 +164,14 @@ public class DefaultMessageStore implements MessageStore {
          * 刷盘线程-- 将内存中的consumequeue落盘 TODO
          */
         this.flushConsumeQueueService = new FlushConsumeQueueService();//线程  刷盘线程
-        this.cleanCommitLogService = new CleanCommitLogService();
-        this.cleanConsumeQueueService = new CleanConsumeQueueService();
+        this.cleanCommitLogService = new CleanCommitLogService();//commit log清理 ，定时任务
+        this.cleanConsumeQueueService = new CleanConsumeQueueService();//consumequue清理定时任务
         this.storeStatsService = new StoreStatsService();//线程
         this.indexService = new IndexService(this);//索引服务
-        if (!messageStoreConfig.isEnableDLegerCommitLog()) {//做高可用使用 如果开启了deledger
+        /**
+         * 高可用。如果没有开启 deledger 。则走ha
+         */
+        if (!messageStoreConfig.isEnableDLegerCommitLog()) {
             this.haService = new HAService(this);
         } else {
             this.haService = null;
@@ -175,13 +180,17 @@ public class DefaultMessageStore implements MessageStore {
          * 线程--- 构建 consumequeue和index文件的 TODO
          */
         this.reputMessageService = new ReputMessageService();//
-
+        /**
+         * 调度线程，进行延时消息处理 TODO
+         */
         this.scheduleMessageService = new ScheduleMessageService(this);
-
+        /**
+         * 对外内存池 TODO
+         */
         this.transientStorePool = new TransientStorePool(messageStoreConfig);//堆外临时存储池
 
         if (messageStoreConfig.isTransientStorePoolEnable()) {//堆外内存池
-            this.transientStorePool.init();
+            this.transientStorePool.init();//c初始化
         }
         /**
          * 创建 mmapedFile 线程 TODO
@@ -242,7 +251,9 @@ public class DefaultMessageStore implements MessageStore {
                 //数据安全落地的checkpoint,决定commitlog文件从哪里开始恢复？
                 this.storeCheckpoint =
                     new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
-                //索引文件初始化
+                /**
+                 * 索引文件初始化 TODO
+                 */
                 this.indexService.load(lastExitOK);
                 /**
                  * 如果是异常退出，则需要对文件进行恢复 TODO
@@ -535,7 +546,7 @@ public class DefaultMessageStore implements MessageStore {
 
         long beginTime = this.getSystemClock().now();
         /**
-         * 真正进行消息写入的地方
+         * 真正进行消息写入的地方 TODO
          */
         PutMessageResult result = this.commitLog.putMessages(messageExtBatch);
 

@@ -68,6 +68,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         switch (request.getCode()) {
             /**
              * 重试消息处理 TODO
+             * cosumer消费段使用
              */
             case RequestCode.CONSUMER_SEND_MSG_BACK://消息进度的ack包.
                 return this.consumerSendMsgBack(ctx, request);
@@ -364,6 +365,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         response.setCode(-1);
         /**
          * 消息检查
+         * 也有创建 TOPIC的过程 TODO
          */
         super.msgCheck(ctx, requestHeader, response);
         if (response.getCode() != -1) {
@@ -412,20 +414,27 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
          * 是否是事务消息
          */
         if (traFlag != null && Boolean.parseBoolean(traFlag)) {
-            if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
+            if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {//
                 response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark(
                     "the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
                         + "] sending transaction message is forbidden");
                 return response;
             }
-            //处理事务消息的prepare消息 TODO
+            /**
+             *  处理事务消息的prepare消息 TODO
+             */
             putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
         } else {
-            //普通消息    事务消息的commit rollback
+            /**
+             * 普通消息
+             * 事务消息的commit rollback
+             */
             putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         }
-
+        /**
+         * 如果消息存储成功，则胡唤醒阻塞的消费段线程进行 消息拉取 TODO
+         */
         return handlePutMessageResult(putMessageResult, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt);
 
     }
@@ -598,9 +607,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         messageExtBatch.setBornHost(ctx.channel().remoteAddress());
         messageExtBatch.setStoreHost(this.getStoreHost());
         messageExtBatch.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes());
-
+        /**
+         * 进行消息存储 TODO
+         */
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessages(messageExtBatch);
-
+        /**
+         * 这个方法也很重要 唤醒阻塞的消费端 TODO
+         */
         return handlePutMessageResult(putMessageResult, response, request, messageExtBatch, responseHeader, sendMessageContext, ctx, queueIdInt);
     }
 
