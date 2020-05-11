@@ -918,7 +918,13 @@ public class BrokerController {
          * 如果沒有开启delger高可用 走普通HA TODO
          */
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+            /**
+             * 如果是主节点，则进行事务回查 TODO
+             */
             startProcessorByHa(messageStoreConfig.getBrokerRole());//HA 主从复制
+            /**
+             * 如果是从节点则 从主节点进行元数据拉取 TODO
+             */
             handleSlaveSynchronize(messageStoreConfig.getBrokerRole());
         }
         /**
@@ -926,7 +932,7 @@ public class BrokerController {
          */
         this.registerBrokerAll(true, false, true);
         /**
-         * 发送心跳 最少10秒 最大60秒 发送时间间隔
+         * 发送心跳 最少10秒 最大60秒 发送时间间隔  TODO 有主从
          */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -998,7 +1004,10 @@ public class BrokerController {
 
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
         TopicConfigSerializeWrapper topicConfigWrapper) {
-        //真正注册 TODO
+        /**
+         *  真正注册 TODO
+         *  broker向nameserver 进行注册
+         */
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
@@ -1013,11 +1022,11 @@ public class BrokerController {
 
         if (registerBrokerResultList.size() > 0) {
             RegisterBrokerResult registerBrokerResult = registerBrokerResultList.get(0);
-            if (registerBrokerResult != null) {
+            if (registerBrokerResult != null) {//如果当前为slave。注册到namesver后会返回主 主节点的地址
                 if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
                     this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
                 }
-
+                //注册成功后，设置主节点地址
                 this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
 
                 if (checkOrderConfig) {
@@ -1175,7 +1184,10 @@ public class BrokerController {
 
 
     private void handleSlaveSynchronize(BrokerRole role) {
-        //如果是主切换成从
+        /**
+         * 如果是主切换成从 deleger模式下的 主切换成从 原来的主节点上会有 slaveSyncFuture
+         * 普通模式下没有
+         */
         if (role == BrokerRole.SLAVE) {//
             //取消原来的定时任务
             if (null != slaveSyncFuture) {
@@ -1183,10 +1195,16 @@ public class BrokerController {
             }
             //设置master为null
             this.slaveSynchronize.setMasterAddr(null);
+            /**
+             * 每 10秒拉取一次元数据 TODO
+             */
             slaveSyncFuture = this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     try {
+                        /**
+                         * 从主 broker上拉取元数据 TODO
+                         */
                         BrokerController.this.slaveSynchronize.syncAll();//拉取元数据
                     }
                     catch (Throwable e) {
@@ -1278,6 +1296,10 @@ public class BrokerController {
     }
 
     private void startProcessorByHa(BrokerRole role) {
+        /**
+         * 如果当前角色 是 master
+         * 事务状态回查 TODO
+         */
         if (BrokerRole.SLAVE != role) {
             if (this.transactionalMessageCheckService != null) {
                 this.transactionalMessageCheckService.start();

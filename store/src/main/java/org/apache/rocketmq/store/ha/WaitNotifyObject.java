@@ -69,7 +69,9 @@ public class WaitNotifyObject {
                 needNotify = needNotify || !value;
                 value = true;
             }
-
+            /**
+             * 如果 waitingThreadTable 存在没有唤醒的线程，则进行唤醒
+             */
             if (needNotify) {
                 this.notifyAll();
             }

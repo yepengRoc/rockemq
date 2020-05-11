@@ -45,6 +45,9 @@ public class SlaveSynchronize {
         this.masterAddr = masterAddr;
     }
 
+    /**
+     * 从主broker上同步所有 元数据信息 TODO
+     */
     public void syncAll() {
         this.syncTopicConfig();
         this.syncConsumerOffset();

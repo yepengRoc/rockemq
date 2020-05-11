@@ -348,9 +348,17 @@ public class DefaultMessageStore implements MessageStore {
              */
             this.recoverTopicQueueTable();
         }
-
+        /**
+         * 如果不是 dleger模式，则启动普通 HA TODO 主从同步使用
+         */
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+            /**
+             * HA 启动 TODO
+             */
             this.haService.start();
+            /**
+             * 延时 消息 队列 的处理 TODO
+             */
             this.handleScheduleMessageService(messageStoreConfig.getBrokerRole());
         }
         /**
@@ -358,7 +366,9 @@ public class DefaultMessageStore implements MessageStore {
          * consumer落盘
          */
         this.flushConsumeQueueService.start();
-
+        /**
+         * commiitlog 启动 TODO
+         */
         this.commitLog.start();//
         this.storeStatsService.start();
 

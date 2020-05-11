@@ -350,7 +350,9 @@ public class BrokerOuterAPI {
         RemotingTimeoutException, InterruptedException, MQBrokerException {
         //获取topic配置信息
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, null);
-        //走的是vip通道。也业务端口分开。避免业务线程繁忙。业务端口减 2
+        /**
+         *  走的是vip通道。和业务端口分开。避免业务线程繁忙。业务端口减 2
+         */
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(true, addr), request, 3000);
         assert response != null;
         switch (response.getCode()) {

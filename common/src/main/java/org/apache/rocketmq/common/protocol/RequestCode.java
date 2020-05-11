@@ -39,7 +39,9 @@ public class RequestCode {
     //结束事务
     public static final int END_TRANSACTION = 37;
     public static final int GET_CONSUMER_LIST_BY_GROUP = 38;
-
+    /**
+     * broker 回查事务状态
+     */
     public static final int CHECK_TRANSACTION_STATE = 39;
 
     public static final int NOTIFY_CONSUMER_IDS_CHANGED = 40;

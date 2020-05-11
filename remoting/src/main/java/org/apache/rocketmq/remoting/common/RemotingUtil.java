@@ -173,7 +173,7 @@ public class RemotingUtil {
             sc.socket().setSoLinger(false, -1);
             /**
              * 关闭Nagle算法，（Nagle算法解决小包问题，提高网络效率，但是心跳包
-             * slaveOffset的大小为8个自己，所以需要关闭）
+             * slaveOffset的大小为8个字节，所以需要关闭）
              */
             sc.socket().setTcpNoDelay(true);
             //设置接收缓冲区大小

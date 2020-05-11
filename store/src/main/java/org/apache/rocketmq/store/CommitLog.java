@@ -108,7 +108,9 @@ public class CommitLog {
 
     public void start() {
         this.flushCommitLogService.start();
-
+        /**
+         * 堆外内存池 处理 TODO
+         */
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.commitLogService.start();
         }
@@ -800,8 +802,8 @@ public class CommitLog {
         //如果是主从同步  异步的则直接跳过
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
             HAService service = this.defaultMessageStore.getHaService();
-            if (messageExt.isWaitStoreMsgOK()) {
-                // Determine whether to wait 决定是否等待，如果slave和master差距没有超过设定值，则不用再同步，返回SLAVE_NOT_AVAILABLE
+            if (messageExt.isWaitStoreMsgOK()) {//等待主节点落盘
+                // Determine whether to wait 决定是否等待，如果slave和master差距没有超过设定值，则进行同步
                 if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
                     //组装request
                     GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
@@ -819,7 +821,7 @@ public class CommitLog {
                     }
                 }
                 // Slave problem
-                else {
+                else {//如果slave和master差距没有超过设定值 256kb，则不进行同步，说明slave有问题了。
                     // Tell the producer, slave not available 返回slave不可用
                     putMessageResult.setPutMessageStatus(PutMessageStatus.SLAVE_NOT_AVAILABLE);
                 }
