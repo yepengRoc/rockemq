@@ -199,6 +199,9 @@ public class IndexService {
     }
 
     public void buildIndex(DispatchRequest req) {
+        /**
+         * 尝试获取或创建 index文件 TODO
+         */
         IndexFile indexFile = retryGetAndCreateIndexFile();
         if (indexFile != null) {
             long endPhyOffset = indexFile.getEndPhyOffset();
@@ -220,7 +223,11 @@ public class IndexService {
             }
 
             if (req.getUniqKey() != null) {
-                //uniqkey是客户端生成的messageid，也来源于message的properties
+                /**
+                 *  uniqkey是客户端生成的messageid，也来源于message的properties
+                 *  jvm进程id + ip + 类加载器hashcode+ 启动时间和当前时间的一个差值 + 一个发送端的累计数
+                 */
+
                 /**
                  * 构建索引文件的位置 TODO
                  */

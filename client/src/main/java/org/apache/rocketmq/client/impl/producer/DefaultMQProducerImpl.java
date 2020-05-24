@@ -199,7 +199,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     this.defaultMQProducer.changeInstanceNameToPID();
                 }
                 /**
-                 * 创建一个客户端
+                 * 创建一个客户端 TODO
                  */
                 this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQProducer, rpcHook);
                 //注册生产者组
@@ -210,10 +210,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         + "] has been created before, specify another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
                         null);
                 }
-                //如果开启自动创建，会在broker 进行创建
+                /**
+                 * 如果开启自动创建，会在broker 进行创建
+                 * 会为当前组在broker端创建信息
+                 */
                 this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
                 /**
                  * 如果是发送 重试 或者 消费端。则这里不进行启动
+                 * TODO
                  */
                 if (startFactory) {
                     mQClientFactory.start();
@@ -233,9 +237,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             default:
                 break;
         }
-        //发送心跳 TODO
         /**
-         * 发送心跳
+         * 发送心跳 TODO
          */
         this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
     }
@@ -555,7 +558,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      * @throws MQBrokerException
      * @throws InterruptedException
      */
-    private SendResult sendDefaultImpl(
+    private SendResult  sendDefaultImpl(
         Message msg,
         final CommunicationMode communicationMode,
         final SendCallback sendCallback,
@@ -615,7 +618,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             callTimeout = true;
                             break;
                         }
-                        //真正发送消息的地方
+                        /**
+                         * 真正发送消息的地方 TODO
+                         */
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
                         endTimestamp = System.currentTimeMillis();
                         /**
@@ -771,8 +776,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      */
     private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
+        /**
+         * 如果是一个新的tipic
+         */
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
+            /**
+             * 更新tipic信息 TODO
+             */
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
             topicPublishInfo = this.topicPublishInfoTable.get(topic);//如果没有 为null
         }
@@ -818,7 +829,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             /**
              * 如果开通了vip.则使用 减1的端口来写消息
              * 系统默认是10911  那vip就会使用 10910
-             * 规避掉繁忙端口
+             * 规避掉繁忙端口,阻塞业务
              */
             brokerAddr = MixAll.brokerVIPChannel(this.defaultMQProducer.isSendMessageWithVIPChannel(), brokerAddr);
 
@@ -826,6 +837,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             try {
                 //for MessageBatch,ID has been set in the generating process
                 if (!(msg instanceof MessageBatch)) {
+                    /**
+                     * 关注下这个 UniqId，broker构建indexFile的时候会用到 TODO
+                     * jvm进程号+ ip + 类加载的hashcode  + 启动时间和当前时间的差值 + 发送次数
+                     */
                     MessageClientIDSetter.setUniqID(msg);//批量为每一个消息生成一个msgeid 。有ip和时间
                 }
 
@@ -835,7 +850,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     sysFlag |= MessageSysFlag.COMPRESSED_FLAG;
                     msgBodyCompressed = true;
                 }
-                //事务消息的 设置sysFlag
+                /**
+                 *  事务消息的 设置sysFlag TODO
+                 */
                 final String tranMsg = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
                 if (tranMsg != null && Boolean.parseBoolean(tranMsg)) {
                     sysFlag |= MessageSysFlag.TRANSACTION_PREPARED_TYPE;
@@ -891,7 +908,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 requestHeader.setUnitMode(this.isUnitMode());
                 requestHeader.setBatch(msg instanceof MessageBatch);
                 /**
-                 * 消息重试逻辑。设置重试次数  消费端使用
+                 * 消息重试逻辑。设置重试次数  消费端使用 TODO
                  */
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     String reconsumeTimes = MessageAccessor.getReconsumeTime(msg);
@@ -1324,12 +1341,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     /**
                      * 如果设置TransactionId,则将它放入消息的properties中（目前没有用到），
                      * 否则以UNIQ_KEY作为消息的transactionid
+                     *
                      */
                     if (sendResult.getTransactionId() != null) {
                         msg.putUserProperty("__transactionId__", sendResult.getTransactionId());
                     }
                     /**
-                     * transactionId 由broker端生成。 放入msg中
+                     * transactionId
+                     * UNIQ_KEY 发送端生成的
+                     * MessageClientIDSetter.createUniqId
                      */
                     String transactionId = msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
                     if (null != transactionId && !"".equals(transactionId)) {
@@ -1437,6 +1457,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         requestHeader.setTranStateTableOffset(sendResult.getQueueOffset());
         requestHeader.setMsgId(sendResult.getMsgId());
         String remark = localException != null ? ("executeLocalTransactionBranch exception: " + localException.toString()) : null;
+        /**
+         * 进行事务消息发送 TODO
+         */
         this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(brokerAddr, requestHeader, remark,
             this.defaultMQProducer.getSendMsgTimeout());
     }

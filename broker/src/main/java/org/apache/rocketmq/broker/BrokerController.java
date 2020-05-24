@@ -186,11 +186,16 @@ public class BrokerController {
          * 唤醒阻塞的客户端线程拉取消息
          */
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService);
+        /**
+         * 消费者信息 变更。通知各个客户端 TODO
+         */
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener);
         this.consumerFilterManager = new ConsumerFilterManager(this);
         this.producerManager = new ProducerManager();
+        //长连接
         this.clientHousekeepingService = new ClientHousekeepingService(this);
+        //broker访问客户端
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);

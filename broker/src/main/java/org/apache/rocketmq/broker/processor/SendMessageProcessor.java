@@ -428,12 +428,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         } else {
             /**
              * 普通消息
-             * 事务消息的commit rollback
+             * 事务消息的commit rollback TODO
              */
             putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         }
         /**
-         * 如果消息存储成功，则胡唤醒阻塞的消费段线程进行 消息拉取 TODO
+         * 进行消息相应 TODO
          */
         return handlePutMessageResult(putMessageResult, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt);
 
