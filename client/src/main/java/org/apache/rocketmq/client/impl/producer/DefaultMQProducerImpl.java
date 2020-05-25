@@ -836,6 +836,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             byte[] prevBody = msg.getBody();
             try {
                 //for MessageBatch,ID has been set in the generating process
+                /**
+                 * 如果不是批量消息
+                 */
                 if (!(msg instanceof MessageBatch)) {
                     /**
                      * 关注下这个 UniqId，broker构建indexFile的时候会用到 TODO

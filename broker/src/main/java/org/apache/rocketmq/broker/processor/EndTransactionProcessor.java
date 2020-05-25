@@ -148,7 +148,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         } else if (MessageSysFlag.TRANSACTION_ROLLBACK_TYPE == requestHeader.getCommitOrRollback()) {
             /**
              * 根据comminglogoffset 从commitlog中获取half消息
-             *
+             * TDOO
              */
             result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {

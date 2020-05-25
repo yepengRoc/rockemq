@@ -60,6 +60,8 @@ public class Message implements Serializable {
         this.body = body;
         /**
          * 消息tag，用于消息过滤
+         * 和标识消息删除 TODO
+         * 事务消息删除，是在此字段上赋值 d
          */
         if (tags != null && tags.length() > 0)
             this.setTags(tags);

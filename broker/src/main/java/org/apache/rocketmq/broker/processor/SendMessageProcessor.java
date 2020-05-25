@@ -614,7 +614,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
          */
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessages(messageExtBatch);
         /**
-         * 这个方法也很重要 唤醒阻塞的消费端 TODO
+         * TODO
          */
         return handlePutMessageResult(putMessageResult, response, request, messageExtBatch, responseHeader, sendMessageContext, ctx, queueIdInt);
     }
