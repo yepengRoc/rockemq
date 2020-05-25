@@ -81,7 +81,9 @@ public class NamesrvController {
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
         this.remotingExecutor = Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
-
+        /**
+         * 注册处理器 TODO
+         */
         this.registerProcessor();
         /**
          * 5秒之后，每隔10秒扫描失效的broker

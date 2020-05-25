@@ -44,7 +44,9 @@ public class BrokerStartup {
 
     public static BrokerController start(BrokerController controller) {
         try {
-
+            /**
+             * 启动 TODO
+             */
             controller.start();
 
             String tip = "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
@@ -163,7 +165,9 @@ public class BrokerStartup {
                 default:
                     break;
             }
-            //高可用，主从通信端口
+            /**
+             * 高可用，主从通信端口 TODO
+             */
             messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
             LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
