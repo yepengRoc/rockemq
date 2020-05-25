@@ -142,6 +142,7 @@ public class MQClientInstance {
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook, clientConfig);
         /**
          * 更新namesvr信息
+         * 和本地nameserver信息进行比对更新
          */
         if (this.clientConfig.getNamesrvAddr() != null) {
             this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
@@ -151,9 +152,13 @@ public class MQClientInstance {
         this.clientId = clientId;
 
         this.mQAdminImpl = new MQAdminImpl(this);
-        //拉取线程 TODO 消费者使用
+        /**
+         * 拉取线程 TODO 消费者使用
+         */
         this.pullMessageService = new PullMessageService(this);
-        //TODO 负载线程 消费者使用
+        /**
+         *  TODO 负载线程 消费者使用
+         */
         this.rebalanceService = new RebalanceService(this);
         //生产者。说明是 同一个jvm中是共用一个clientinstance
         this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);//内部生产者
@@ -283,7 +288,7 @@ public class MQClientInstance {
 
     private void startScheduledTask() {
         /**
-         * 每2分钟去获取一次namesver信息
+         * 每2分钟去获取一次namesver信息。如果naversver 配置在远端的话
          */
         if (null == this.clientConfig.getNamesrvAddr()) {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -299,7 +304,7 @@ public class MQClientInstance {
             }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
         }
         /**
-         * 每30秒 去更新客户端的路由信息
+         * 每30秒 去更新客户端的路由信息 TODO
          */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -313,7 +318,7 @@ public class MQClientInstance {
             }
         }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS);
         /**
-         * 每30秒 心跳
+         * 每30秒 心跳  清理下线的broker
          */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -321,6 +326,9 @@ public class MQClientInstance {
             public void run() {
                 try {
                     MQClientInstance.this.cleanOfflineBroker();//清理 无法使用的broker Todo
+                    /**
+                     * 向broker发送心跳 TODO
+                     */
                     MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
                 } catch (Exception e) {
                     log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
@@ -560,7 +568,9 @@ public class MQClientInstance {
          * 通过心跳包去更新订阅信息
          */
         final HeartbeatData heartbeatData = this.prepareHeartbeatData();//准备心跳数据
+        //生产者
         final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
+        //消费者
         final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();
         if (producerEmpty && consumerEmpty) {
             log.warn("sending heartbeat, but no consumer and no producer");
@@ -580,12 +590,15 @@ public class MQClientInstance {
                         String addr = entry1.getValue();
                         if (addr != null) {
                             if (consumerEmpty) {
+                                /**
+                                 * 只向主节点发送信息
+                                 */
                                 if (id != MixAll.MASTER_ID)
                                     continue;
                             }
 
                             try {
-                                //进行消息发送
+                                //进行心跳发送
                                 int version = this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
                                 if (!this.brokerVersionTable.containsKey(brokerName)) {
                                     this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));

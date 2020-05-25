@@ -487,7 +487,7 @@ public class DefaultMessageStore implements MessageStore {
         }
         //如果系统io比较频繁，则时间间隔比较长。这个时候认为系统io负载高
         /**
-         * 大量的内存和磁盘在做交换
+         * 大量的内存和磁盘在做交换 TODO
          */
         if (this.isOSPageCacheBusy()) {
             //返回忙。不能发消息
@@ -677,6 +677,9 @@ public class DefaultMessageStore implements MessageStore {
                             }
 
                             boolean extRet = false, isTagsCodeLegal = true;
+                            /**
+                             * 首先根据tagcode 过滤一遍 TODO
+                             */
                             if (consumeQueue.isExtAddr(tagsCode)) {
                                 extRet = consumeQueue.getExt(tagsCode, cqExtUnit);
                                 if (extRet) {
@@ -2018,6 +2021,7 @@ public class DefaultMessageStore implements MessageStore {
                                 if (size > 0) {
                                     /**
                                      * 查看doDispathch方法 TODO
+                                     * 构建index和consumer TODO
                                      */
                                     DefaultMessageStore.this.doDispatch(dispatchRequest);
 
@@ -2027,6 +2031,7 @@ public class DefaultMessageStore implements MessageStore {
                                          * 如果是长轮训。通知broker端挂起的拉取请求消息到来了 TODO
                                          * 在客户端进行消息拉取的时候，如果没有消息则挂起等待
                                          * 超时或者消息到来
+                                         * new NotifyMessageArrivingListener(this.pullRequestHoldService);
                                          */
                                         DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
                                             dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,

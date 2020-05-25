@@ -1078,6 +1078,9 @@ public class CommitLog {
                 }
 
                 try {
+                    /**
+                     * 堆外内存刷到 pagecache TODO
+                     */
                     boolean result = CommitLog.this.mappedFileQueue.commit(commitDataLeastPages);
                     long end = System.currentTimeMillis();
                     if (!result) {
@@ -1149,7 +1152,9 @@ public class CommitLog {
                     }
 
                     long begin = System.currentTimeMillis();
-                    //刷盘
+                    /**
+                     * 刷盘 TODO
+                     */
                     CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
                     long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
                     if (storeTimestamp > 0) {
@@ -1166,7 +1171,7 @@ public class CommitLog {
                 }
             }
             /**
-             * 安全退出时也要刷盘
+             * 安全退出时也要刷盘-强制刷盘 TODO
              */
             // Normal shutdown, to ensure that all the flush before exit
             boolean result = false;
@@ -1277,6 +1282,10 @@ public class CommitLog {
                              * 这里为什么两次循环刷盘两次
                              * 最多只能把当前没有刷盘的MappedFile全部刷盘
                              * 如果这个处理周期有新的MappedFile产生，新的MappedFile的刷盘需要再从新触发一次
+                             * 如果要追加的mappedFile 不够存储当前消息，则在mappedFile 追加一个结尾。也是追加在内存中
+                             * 这个也是需要落盘的
+                             * 这样的话。根据commitlog中读的位置，肯定是上一个mappedFile。刷完后，
+                             * 再次读取才是这次真正存储数据的MappedFile
                              * TODO  刷盘
                              */
                             if (!flushOK) {//刷盘
@@ -1407,6 +1416,7 @@ public class CommitLog {
             /**
              * 根据物理位置 broker地址算出来的
              * ip地址  端口  在commitlog中的起始位置 组成msgId
+             * TODO
              */
             String msgId = MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(hostHolder), wroteOffset);
 
@@ -1553,7 +1563,7 @@ public class CommitLog {
 
             final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
             /**
-             * Write messages to the queue buffer  写入message到mappedfile
+             * Write messages to the queue buffer  写入message到mappedfile TODO 追加到内存中
               */
             byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
             /**

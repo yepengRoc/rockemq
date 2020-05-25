@@ -253,6 +253,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             responseHeader.setMaxOffset(getMessageResult.getMaxOffset());
             /**
              * 切换为 broker
+             * 如果拉取的信息 太久远的话，不在内存中，则建议从 从节点进行拉取 TODO
              */
             if (getMessageResult.isSuggestPullingFromSlave()) {
                 responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
@@ -358,7 +359,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                      * 消息没有发现
                      */
                     case ResponseCode.PULL_NOT_FOUND:
-                        if (!brokerAllowSuspend) {
+                        if (!brokerAllowSuspend) {//不允许挂起，则直接返回
 
                             context.setCommercialRcvStats(BrokerStatsManager.StatsType.RCV_EPOLLS);
                             context.setCommercialRcvTimes(1);
@@ -391,7 +392,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
                     this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
                     /**
-                     * TODO 使用堆外内存还是 堆内存。可以配置实现。
+                     * 使用堆外内存还是 堆内存。可以配置实现。TODO
                      */
                     if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
                         final long beginTimeMills = this.brokerController.getMessageStore().now();
