@@ -263,7 +263,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 return;
             }
         } else {
-            if (processQueue.isLocked()) {//全局唯一。有可能被其它锁了
+            if (processQueue.isLocked()) {//同一个组下全局唯一。有可能被其它锁了
                 if (!pullRequest.isLockedFirst()) {
                     final long offset = this.rebalanceImpl.computePullFromWhere(pullRequest.getMessageQueue());
                     boolean brokerBusy = offset < pullRequest.getNextOffset();
@@ -278,6 +278,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     pullRequest.setNextOffset(offset);
                 }
             } else {
+                /**
+                 * 从新入队 TODO
+                 */
                 this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION);
                 log.info("pull message later because not locked in broker, {}", pullRequest);
                 return;
@@ -316,6 +319,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                             long firstMsgOffset = Long.MAX_VALUE;
                             if (pullResult.getMsgFoundList() == null || pullResult.getMsgFoundList().isEmpty()) {
+                                /**
+                                 * 如果没有抓取到，再次放入队列进行抓取 TODO
+                                 */
                                 DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             } else {
                                 firstMsgOffset = pullResult.getMsgFoundList().get(0).getQueueOffset();
@@ -599,6 +605,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 /**
                  * 复制订阅消息 TODO
                  * 生成一个 重试消息。发送到 broker 通过心跳包。
+                 * topic: %RETRY% + 组名
                  */
                 this.copySubscription();
 
@@ -685,12 +692,16 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             default:
                 break;
         }
-        //更新本地top订阅信息
+        /**
+         *  更新本地top订阅信息
+         */
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
         this.mQClientFactory.checkClientInBroker();
         //发送心跳 TODO
         this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
-        //如果都已经正常启动了，这里直接出发一次rebalance
+        /**
+         *  如果都已经正常启动了，这里直接出发一次rebalance TODO
+         */
         this.mQClientFactory.rebalanceImmediately();
     }
 
@@ -888,7 +899,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             }
 
             switch (this.defaultMQPushConsumer.getMessageModel()) {
-                case BROADCASTING:
+                case BROADCASTING://广播模式自己维护进度。
                     break;
                 case CLUSTERING:
                     /**

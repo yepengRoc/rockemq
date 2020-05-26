@@ -393,6 +393,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
                     /**
                      * 使用堆外内存还是 堆内存。可以配置实现。TODO
+                     * 堆外内存 性能更好些
                      */
                     if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
                         final long beginTimeMills = this.brokerController.getMessageStore().now();
@@ -431,6 +432,10 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                      * 允许挂起 且有挂起标志
                      */
                     if (brokerAllowSuspend && hasSuspendFlag) {
+                        /**
+                         * 如果客户端开启长轮询的话，默认是 5秒 TODO
+                         * 没有开启的话，则是1秒
+                         */
                         long pollingTimeMills = suspendTimeoutMillisLong;
                         if (!this.brokerController.getBrokerConfig().isLongPollingEnable()) {
                             pollingTimeMills = this.brokerController.getBrokerConfig().getShortPollingTimeMills();
@@ -566,7 +571,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 try {
                     /**
                      * 第三个参数 为 false TODO.
-                     * 不走挂起流程
+                     * 不走挂起流程。因为是被唤醒的，所以就不走挂起了
                      */
                     final RemotingCommand response = PullMessageProcessor.this.processRequest(channel, request, false);
 
@@ -596,6 +601,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 }
             }
         };
+        /**
+         * 通过线程池进行执行 TODO
+         */
         this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, channel, request));
     }
 

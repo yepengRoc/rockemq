@@ -140,6 +140,7 @@ public abstract class ServiceThread implements Runnable {
         if (hasNotified.compareAndSet(true, false)) {//设置失败。说明已经执行过唤醒了。
             /**
              * 这里有一个交换的动作 TODO
+             * 看子线程是否有对应的实现。每个实现不一样
              */
             this.onWaitEnd();
             return;

@@ -766,6 +766,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
                 Validators.checkMessage(message, this);
                 MessageClientIDSetter.setUniqID(message);
             }
+            /**
+             * 将一个个的消息转换为单条消息格式 TODO
+             */
             msgBatch.setBody(msgBatch.encode());
         } catch (Exception e) {
             throw new MQClientException("Failed to initiate the MessageBatch", e);

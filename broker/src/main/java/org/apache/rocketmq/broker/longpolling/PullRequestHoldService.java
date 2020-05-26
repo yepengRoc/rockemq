@@ -43,7 +43,10 @@ public class PullRequestHoldService extends ServiceThread {
 
     public void suspendPullRequest(final String topic, final int queueId, final PullRequest pullRequest) {
         String key = this.buildKey(topic, queueId);//top@queId
-        //是一个list.加锁实现安全
+        /**
+         *  是一个list.加锁实现安全
+         *  一个topic上有多个拉取请求 TODO
+         */
         ManyPullRequest mpr = this.pullRequestTable.get(key);
         if (null == mpr) {
             mpr = new ManyPullRequest();
@@ -119,6 +122,8 @@ public class PullRequestHoldService extends ServiceThread {
 
     /**
      * 进行拉取消息唤醒 TODO
+     * 一个是当前线程类定时唤醒。 对于超时的拉取请求 进行处理
+     * 第二个是 真的消息来了，进行唤醒
      * @param topic
      * @param queueId
      * @param maxOffset
@@ -164,6 +169,7 @@ public class PullRequestHoldService extends ServiceThread {
                         }
                     }
                     /**
+                     * 如果没有匹配到。超时的也进行处理
                      * 超时 -hold太久了。-返回一个空值  TODO
                      * 还是执行拉取请求，拉取不到返回一个空值
                      */

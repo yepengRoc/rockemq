@@ -132,6 +132,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         /**
          * 拿到重试的消息  查找订阅关系
          * 每次心跳的时候会发送订阅信息给broker. broker进行缓存
+         * 根据组名，拿到对应的 订阅组配置 TODO
          */
         SubscriptionGroupConfig subscriptionGroupConfig =
             this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(requestHeader.getGroup());
@@ -154,7 +155,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return response;
         }
         /**
-         * 生成retry topic名称  %RETRY%+组名
+         * 生成retry topic名称  %RETRY%+组名 TODO
          *
          */
         String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
@@ -167,7 +168,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         /**
          * 获取topic配置
          * newTopic
-         * %RETRY%+组名 消费者会通过心跳传输至broker端
+         * %RETRY%+组名 消费者会通过心跳传输至broker端.创建对应的topic配置信息
          */
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
             newTopic,
@@ -195,7 +196,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return response;
         }
         /**
-         * 放入重试消息主体。 在msg中加入属性 RETY_TOPI  对应的是原来真实的topic
+         * 放入重试消息主体。 在msg中加入属性 RETY_TOPIC  对应的是原来真实的topic
          * TODO
          */
         final String retryTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
@@ -206,7 +207,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         //获取delevlev
         int delayLevel = requestHeader.getDelayLevel();
         /**
-         * 超过重试最大次数，进入死信队列
+         * 超过重试最大次数，进入死信队列 TODO
          */
         int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
         if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
@@ -228,6 +229,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 return response;
             }
         } else {
+            /**
+             * 消费端。消息过期。默认level是3
+             * 如果是稍后重试。则level是 当前重试的次数。第一次是0
+             */
             if (0 == delayLevel) {//重试次数+3  。初始就是3.不让很快就又进行消费
                 delayLevel = 3 + msgExt.getReconsumeTimes();
             }

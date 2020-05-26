@@ -200,7 +200,9 @@ public class BrokerController {
         this.producerManager = new ProducerManager();
         //长连接
         this.clientHousekeepingService = new ClientHousekeepingService(this);
-        //broker访问客户端
+        /**
+         * broker访问客户端 事务回查
+         */
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);

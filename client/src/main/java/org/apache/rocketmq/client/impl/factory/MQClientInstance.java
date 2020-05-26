@@ -475,7 +475,9 @@ public class MQClientInstance {
                 // may need to check one broker every cluster...
                 // assume that the configs of every broker in cluster are the the same.
                 String addr = findBrokerAddrByTopic(subscriptionData.getTopic());
-
+                /**
+                 * 检查broker端的客户端配置
+                 */
                 if (addr != null) {
                     try {
                         this.getMQClientAPIImpl().checkClientInBroker(
@@ -598,7 +600,9 @@ public class MQClientInstance {
                             }
 
                             try {
-                                //进行心跳发送
+                                /**
+                                 * 进行心跳发送 TODO
+                                 */
                                 int version = this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
                                 if (!this.brokerVersionTable.containsKey(brokerName)) {
                                     this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));

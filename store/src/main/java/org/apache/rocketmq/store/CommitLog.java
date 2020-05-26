@@ -361,6 +361,7 @@ public class CommitLog {
                 // Timing message processing
                 /**
                  * 重试消息 retry 会从新计算TAG值 TODO
+                 * 记录下一次要投递的时间 TODO
                  */
                 {
                     String t = propertiesMap.get(MessageConst.PROPERTY_DELAY_TIME_LEVEL);
@@ -821,7 +822,7 @@ public class CommitLog {
                     }
                 }
                 // Slave problem
-                else {//如果slave和master差距没有超过设定值 256kb，则不进行同步，说明slave有问题了。
+                else {//如果slave和master差距 超过设定值 256kb，则不进行同步，说明slave有问题了。
                     // Tell the producer, slave not available 返回slave不可用
                     putMessageResult.setPutMessageStatus(PutMessageStatus.SLAVE_NOT_AVAILABLE);
                 }
@@ -841,6 +842,9 @@ public class CommitLog {
         if (tranType != MessageSysFlag.TRANSACTION_NOT_TYPE) {
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
+        /**
+         * 批量消息不支持延时处理
+         */
         if (messageExtBatch.getDelayTimeLevel() > 0) {
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
@@ -872,7 +876,7 @@ public class CommitLog {
                 return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
             }
             /**
-             * 追加消息
+             * 追加消息 TODO
              */
             result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback);
             switch (result.getStatus()) {
@@ -1215,6 +1219,10 @@ public class CommitLog {
             return nextOffset;
         }
 
+        /**
+         * 通过read 进行唤醒 read读取到slave都拉取到了则进行  生产者线程唤醒操作。进行生产者响应。
+         * @param flushOK
+         */
         public void wakeupCustomer(final boolean flushOK) {
             this.flushOK = flushOK;
             this.countDownLatch.countDown();
