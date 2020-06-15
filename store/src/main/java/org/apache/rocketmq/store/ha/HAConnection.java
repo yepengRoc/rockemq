@@ -360,6 +360,9 @@ public class HAConnection {
             int writeSizeZeroTimes = 0;  //
             // Write Header
             while (this.byteBufferHeader.hasRemaining()) {
+                /**
+                 *真正写数据的地方
+                 */
                 int writeSize = this.socketChannel.write(this.byteBufferHeader);
                 if (writeSize > 0) {
                     writeSizeZeroTimes = 0;
