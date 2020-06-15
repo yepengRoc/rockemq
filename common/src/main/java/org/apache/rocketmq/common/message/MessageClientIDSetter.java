@@ -34,14 +34,23 @@ public class MessageClientIDSetter {
         LEN = 4 + 2 + 4 + 4 + 2;
         ByteBuffer tempBuffer = ByteBuffer.allocate(10);
         tempBuffer.position(2);
+        /**
+         * 虚拟机进程id
+         */
         tempBuffer.putInt(UtilAll.getPid());
         tempBuffer.position(0);
         try {
+            /**
+             * ip
+             */
             tempBuffer.put(UtilAll.getIP());
         } catch (Exception e) {
             tempBuffer.put(createFakeIP());
         }
         tempBuffer.position(6);
+        /**
+         * 类加载器的hashcode
+         */
         tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());
         FIX_STRING = UtilAll.bytes2string(tempBuffer.array());
         setStartTime(System.currentTimeMillis());

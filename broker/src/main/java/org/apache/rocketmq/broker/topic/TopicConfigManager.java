@@ -214,7 +214,9 @@ public class TopicConfigManager extends ConfigManager {
                         this.dataVersion.nextVersion();
 
                         createNew = true;
-
+                        /**
+                         * 进行数据持久化 TODO
+                         */
                         this.persist();
                     }
                 } finally {

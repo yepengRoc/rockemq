@@ -296,6 +296,9 @@ public class BrokerOuterAPI {
                     @Override
                     public void run() {
                         try {
+                            /**
+                             * 查看当前topic信心是否变化。如果变化了的。就需要从新向naver注册 TODO
+                             */
                             QueryDataVersionRequestHeader requestHeader = new QueryDataVersionRequestHeader();
                             requestHeader.setBrokerAddr(brokerAddr);
                             requestHeader.setBrokerId(brokerId);

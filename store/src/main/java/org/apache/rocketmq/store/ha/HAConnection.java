@@ -102,7 +102,10 @@ public class HAConnection {
             while (!this.isStopped()) {
                 try {
                     this.selector.select(1000);
-                    //处理读事件
+                    /**
+                     *  处理读事件 TODO
+                     */
+
                     boolean ok = this.processReadEvent();
                     if (!ok) {
                         HAConnection.log.error("processReadEvent error");
@@ -361,7 +364,7 @@ public class HAConnection {
             // Write Header
             while (this.byteBufferHeader.hasRemaining()) {
                 /**
-                 *真正写数据的地方
+                 * 写数据 TODO
                  */
                 int writeSize = this.socketChannel.write(this.byteBufferHeader);
                 if (writeSize > 0) {

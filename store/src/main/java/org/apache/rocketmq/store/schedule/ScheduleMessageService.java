@@ -342,6 +342,9 @@ public class ScheduleMessageService extends ConfigManager {
                                          * 恢复为原来的消息TODO
                                          */
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
+                                        /**
+                                         * 把消息放回到 commitlog TODO
+                                         */
                                         PutMessageResult putMessageResult =
                                             ScheduleMessageService.this.writeMessageStore
                                                 .putMessage(msgInner);

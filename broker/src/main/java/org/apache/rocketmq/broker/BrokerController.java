@@ -125,6 +125,11 @@ public class BrokerController {
     private final SubscriptionGroupManager subscriptionGroupManager;
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
+    /**
+     * 抓取naversver地址
+     * 向broker注册naverserv
+     * 生产者或者 消费者也会使用
+     */
     private final BrokerOuterAPI brokerOuterAPI;
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "BrokerControllerScheduledThread"));
@@ -186,11 +191,18 @@ public class BrokerController {
          * 唤醒阻塞的客户端线程拉取消息
          */
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService);
+        /**
+         * 消费者信息 变更。通知各个客户端 TODO
+         */
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener);
         this.consumerFilterManager = new ConsumerFilterManager(this);
         this.producerManager = new ProducerManager();
+        //长连接
         this.clientHousekeepingService = new ClientHousekeepingService(this);
+        /**
+         * broker访问客户端 事务回查
+         */
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
@@ -270,7 +282,7 @@ public class BrokerController {
                 MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
                 this.messageStore = MessageStoreFactory.build(context, this.messageStore);
                 /**
-                 *逻辑
+                 *逻辑 TODO
                  */
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
             } catch (IOException e) {
@@ -285,6 +297,9 @@ public class BrokerController {
         result = result && this.messageStore.load();
 
         if (result) {
+            /**
+             * 初始化一个netty 服务端 TODO
+             */
             this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
             NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
@@ -422,7 +437,9 @@ public class BrokerController {
                     }
                 }
             }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
-            //TODO
+            /**
+             * 进行naversver地址更新 TODO
+             */
             if (this.brokerConfig.getNamesrvAddr() != null) {
                 this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
                 log.info("Set user specified name server address: {}", this.brokerConfig.getNamesrvAddr());
@@ -506,6 +523,9 @@ public class BrokerController {
              * 事务消息回查 TODO
              */
             initialTransaction();
+            /**
+             * 权限控制 TODO
+             */
             initialAcl();
             initialRpcHooks();
         }
@@ -891,7 +911,7 @@ public class BrokerController {
         }
         /**
          * 关注下 TODO
-         * 客户端
+         * 客户端 订单去远程服务端拉取 nameserver地址
          */
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.start();
@@ -906,6 +926,7 @@ public class BrokerController {
         }
             /**
              * 关注下 TODO
+             * 进行不活跃 channel查看处理
              */
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.start();
@@ -949,7 +970,9 @@ public class BrokerController {
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.start();
         }
-
+        /**
+         * 请求快速失败 TODO
+         */
         if (this.brokerFastFailure != null) {
             this.brokerFastFailure.start();
         }
@@ -975,6 +998,12 @@ public class BrokerController {
         doRegisterBrokerAll(true, false, topicConfigSerializeWrapper);
     }
 
+    /**
+     * 向naneserver 注册broker信息
+     * @param checkOrderConfig
+     * @param oneway
+     * @param forceRegister
+     */
     public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
 
@@ -989,7 +1018,11 @@ public class BrokerController {
             }
             topicConfigWrapper.setTopicConfigTable(topicConfigTable);
         }
-
+        /**
+         * 是否强制注册
+         * 是否需要注册
+         * 二者其中一个为真 都会向naverServer注册
+         */
         if (forceRegister || needRegister(this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
             this.brokerConfig.getBrokerName(),

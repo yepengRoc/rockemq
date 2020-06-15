@@ -50,10 +50,14 @@ public class MQClientManager {
     }
 
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
-        //构建客户端id  ip@线程id(@单位)
+        /**
+         * 构建客户端id  ip@线程id(@单位)
+         * ip@实例名 TODO
+         */
         String clientId = clientConfig.buildMQClientId();//ip@pid  ip加@加线程id  ip@客户端实例名
         /**
          * MQClientInstance 进行网络请求，心跳监测等操作
+         * 示例 缓存在本地
          */
         MQClientInstance instance = this.factoryTable.get(clientId);
         if (null == instance) {

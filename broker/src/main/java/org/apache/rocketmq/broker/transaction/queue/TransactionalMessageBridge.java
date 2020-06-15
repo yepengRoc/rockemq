@@ -223,10 +223,11 @@ public class TransactionalMessageBridge {
             MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), MessageSysFlag.TRANSACTION_NOT_TYPE));
         /**
          * 构建事务专有的TOPIC
+         * RMQ_SYS_TRANS_HALF_TOPIC
          */
         msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic());//设置事务topic
         /**
-         * 事务性消息只有一个队列
+         * 事务性消息只有一个队列.所以固定设置为0
          */
         msgInner.setQueueId(0);//因为事务消息只有一个队列，所以queid 直接设置为0
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
@@ -329,6 +330,10 @@ public class TransactionalMessageBridge {
      * @return This method will always return true.
      */
     private boolean addRemoveTagInTransactionOp(MessageExt messageExt, MessageQueue messageQueue) {
+        /**
+         * 构建 op_half_message
+         * 消息内容为 half_message的 偏移量
+         */
         Message message = new Message(TransactionalMessageUtil.buildOpTopic(), TransactionalMessageUtil.REMOVETAG,
             String.valueOf(messageExt.getQueueOffset()).getBytes(TransactionalMessageUtil.charset));
         writeOp(message, messageQueue);

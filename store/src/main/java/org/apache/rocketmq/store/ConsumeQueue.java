@@ -463,17 +463,23 @@ public class ConsumeQueue {
         this.byteBufferIndex.putLong(tagsCode);
 
         final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
-        //
+        /**
+         * 获取最后一个文件 包含创建方法 TODO
+         */
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);
         if (mappedFile != null) {
             /**
              * 如果mappedfilequeue的mappedfile被清除
              * 需要保证消息队列的逻辑位置和consumequeue文件的起始文件和偏移保持一致，需要补充空的逻辑消息
+             * todo
              */
             if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
                 this.minLogicOffset = expectLogicOffset;
                 this.mappedFileQueue.setFlushedWhere(expectLogicOffset);
                 this.mappedFileQueue.setCommittedWhere(expectLogicOffset);
+                /**
+                 * 进行填充 TODO
+                 */
                 this.fillPreBlank(mappedFile, expectLogicOffset);//
                 log.info("fill pre blank space " + mappedFile.getFileName() + " " + expectLogicOffset + " "
                     + mappedFile.getWrotePosition());

@@ -230,7 +230,9 @@ public abstract class RebalanceImpl {
                 }
             }
         }
-
+        /**
+         * 移除变化的topic
+         */
         this.truncateMessageQueueNotMyTopic();
     }
 
@@ -280,8 +282,8 @@ public abstract class RebalanceImpl {
                     List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
                     mqAll.addAll(mqSet);
 
-                    Collections.sort(mqAll);
-                    Collections.sort(cidAll);
+                    Collections.sort(mqAll);//根据topic 排序
+                    Collections.sort(cidAll);//根据ip排序
 
                     AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
 
@@ -303,7 +305,7 @@ public abstract class RebalanceImpl {
                         allocateResultSet.addAll(allocateResult);
                     }
                     /**
-                     * processQueue 的数据 在初始化的时候 这里会初始化一次TODO
+                     * processQueue 的数据 在初始化的时候 这里会初始化一次 TODO
                      */
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
@@ -348,7 +350,10 @@ public abstract class RebalanceImpl {
             ProcessQueue pq = next.getValue();
 
             if (mq.getTopic().equals(topic)) {
-                if (!mqSet.contains(mq)) {//不包含当前消息队列，则进行失效
+                /**
+                 * 不包含当前消息队列，则进行失效 TODO
+                 */
+                if (!mqSet.contains(mq)) {
                     pq.setDropped(true);
                     if (this.removeUnnecessaryMessageQueue(mq, pq)) {
                         it.remove();

@@ -228,6 +228,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         }
                         /**
                          * 在当前messagequeue的检查逻辑开始后，如果有half消息写入，会发生这种情况
+                         * 则直接跳出进行下一次回查。改消息时新来的。
                          * 因为Consumequeue是按照顺序构建的，所以该MessageQueue后面的消息都不用回查了
                          */
                         if (msgExt.getStoreTimestamp() >= startTime) {
@@ -237,10 +238,15 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         }
 
                         long valueOfCurrentMinusBorn = System.currentTimeMillis() - msgExt.getBornTimestamp();
-                        long checkImmunityTime = transactionTimeout;
-                        //这个时间段内不要发送回查-免疫时间
+                        long checkImmunityTime = transactionTimeout;//免疫时间
+                        /**
+                         * 这个时间段内不要发送回查-免疫时间
+                         */
                         String checkImmunityTimeStr = msgExt.getUserProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
-                        //如果生产者对特定消息设置了首次回查免疫时间
+                        /**
+                         * 如果生产者对特定消息设置了首次回查免疫时间
+                         * 免疫时间只针对第一次查询有作用。第二次 第三次 则不判断免疫时间
+                         */
                         if (null != checkImmunityTimeStr) {
                             checkImmunityTime = getImmunityTime(checkImmunityTimeStr, transactionTimeout);
                             if (valueOfCurrentMinusBorn < checkImmunityTime) {

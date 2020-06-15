@@ -235,6 +235,8 @@ public class HAService {
                                     try {
                                         /**
                                          * HA连接   TODO
+                                         *writeSocketService
+                                         * readSocketService
                                          */
                                         HAConnection conn = new HAConnection(HAService.this, sc);
                                         /**
@@ -308,9 +310,10 @@ public class HAService {
                     for (CommitLog.GroupCommitRequest req : this.requestsRead) {
                         /**
                          * 比较两个offset,若push2SlaveMaxOffset > req.getNextOffset则transferOk=true
+                         * 说明没有可以传输的数据了 TODO
                          */
                         boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
-                        for (int i = 0; !transferOK && i < 5; i++) {//循环6次 transferOK
+                        for (int i = 0; !transferOK && i < 5; i++) {//循环6次 transferOK  等待6秒
                             this.notifyTransferObject.waitForRunning(1000);
                             transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
                         }
@@ -319,7 +322,7 @@ public class HAService {
                             log.warn("transfer messsage to slave timeout, " + req.getNextOffset());
                         }
                         /**
-                         * 唤醒写线程  transferOK 不ok也会接着唤醒
+                         * 唤醒阻塞的客户端（生产者）线程  transferOK 不ok也会接着唤醒 TODO
                          */
                         req.wakeupCustomer(transferOK);
                     }

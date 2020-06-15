@@ -270,7 +270,7 @@ public class MappedFile extends ReferenceResource {
             byteBuffer.position(currentPos);//设置新bytebuffer的写位置
             AppendMessageResult result = null;
             /**
-             * 进行信息追加
+             * 进行信息追加 TODO
              */
             if (messageExt instanceof MessageExtBrokerInner) {//单个消息处理
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
@@ -301,6 +301,9 @@ public class MappedFile extends ReferenceResource {
         if ((currentPos + data.length) <= this.fileSize) {
             try {
                 this.fileChannel.position(currentPos);
+                /**
+                 * 如果缓冲区写满则落盘 TODO
+                 */
                 this.fileChannel.write(ByteBuffer.wrap(data));
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
@@ -371,7 +374,7 @@ public class MappedFile extends ReferenceResource {
     }
 
     /**
-     * 堆外内存刷到 commitlog中 TODO
+     * 堆外内存提交到pagecache中 TODO
      * @param commitLeastPages
      * @return
      */

@@ -89,7 +89,7 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
         this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
-        this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
+        this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);//从本地缓存中移除
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()
             && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
             try {
@@ -218,7 +218,7 @@ public class RebalancePushImpl extends RebalanceImpl {
     }
 
     /**
-     * 放到一个全局的 linkedblockqueue 队列里面
+     * 放到一个全局的  linkedblockqueue（pullrequestQueue） 队列里面
      * @param pullRequestList
      */
     @Override

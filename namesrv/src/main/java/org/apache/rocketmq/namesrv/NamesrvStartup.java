@@ -147,7 +147,9 @@ public class NamesrvStartup {
                 return null;
             }
         }));
-
+        /**
+         * 启动动作 TODO
+         */
         controller.start();
 
         return controller;
