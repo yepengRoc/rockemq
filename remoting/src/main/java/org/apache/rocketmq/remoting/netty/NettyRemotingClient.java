@@ -174,7 +174,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                              * 双通道 TODO
                              */
                             new NettyConnectManageHandler(),
-                        //这个需要看下 TODO
+                            /**
+                             *  这个需要看下 TODO
+                             */
                         new NettyClientHandler());
                 }
             });
@@ -549,7 +551,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     throw new RemotingTooMuchRequestException("invokeAsync call timeout");
                 }
                 /**
-                 * 异步调用的贷方
+                 * 异步调用的地方
                  */
                 this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, invokeCallback);
             } catch (RemotingSendRequestException e) {

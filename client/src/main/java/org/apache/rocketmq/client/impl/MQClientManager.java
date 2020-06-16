@@ -53,6 +53,8 @@ public class MQClientManager {
         /**
          * 构建客户端id  ip@线程id(@单位)
          * ip@实例名 TODO
+         * ip+@+属性 rocketmq.client.name的值，默认是default
+         * System.getProperty("rocketmq.client.name", "DEFAULT");
          */
         String clientId = clientConfig.buildMQClientId();//ip@pid  ip加@加线程id  ip@客户端实例名
         /**

@@ -132,13 +132,16 @@ public class MQClientInstance {
         this.clientConfig = clientConfig;
         this.instanceIndex = instanceIndex;
         this.nettyClientConfig = new NettyClientConfig();
+        //设置回调线程数
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
         this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
         /**
-         * 客户端的服务交互处理
+         * 客户端的服务交互处理。 对request conde的处理
          */
         this.clientRemotingProcessor = new ClientRemotingProcessor(this);//
-        //注册处理器
+        /**
+         * 注册处理器
+         */
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook, clientConfig);
         /**
          * 更新namesvr信息
@@ -318,7 +321,7 @@ public class MQClientInstance {
             }
         }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS);
         /**
-         * 每30秒 心跳  清理下线的broker
+         * 每30秒 心跳  清理下线的broker  TODO
          */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -595,7 +598,7 @@ public class MQClientInstance {
                                 /**
                                  * 只向主节点发送信息
                                  */
-                                if (id != MixAll.MASTER_ID)
+                                if(id != MixAll.MASTER_ID)
                                     continue;
                             }
 
@@ -666,6 +669,9 @@ public class MQClientInstance {
                     TopicRouteData topicRouteData;
                     /**
                      * 如果是默认生产者，则使用 CreateTopicKey 去查找对应的topic路由信息
+                     * 如果当前topic 从namesver没有拉取到信息，则使用默认topic 去namesver拉取信息
+                     * 如果在broker 端开启了自动创建topic。 则使用默认topic配置。给这个topic创建配置信息
+                     * 传输到broker后，会记录下来。然后再broker端，通过心跳的方式传给namesver
                      */
                     //isDefault为true
                     if (isDefault && defaultMQProducer != null) {//走这段逻辑

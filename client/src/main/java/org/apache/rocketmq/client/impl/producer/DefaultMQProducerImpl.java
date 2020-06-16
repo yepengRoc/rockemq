@@ -174,7 +174,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 //检查配置信息
                 this.checkConfig();
                 /**
-                 * 如果不是内部生产组，则跟换实例名为pid 线程id
+                 * 如果不是内部生产组，则更换实例名为pid 线程id
                  * TODO !this.defaultMQProducer
                  */
 
@@ -197,6 +197,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 /**
                  * 如果开启自动创建，会在broker 进行创建
                  * 会为当前组在broker端创建信息
+                 * AUTO_CREATE_TOPIC_KEY_TOPIC = "TBW102"
+                 * 添加默认主题。如果开启了自动创建topic有用
                  */
                 this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
                 /**
@@ -802,6 +804,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                       final TopicPublishInfo topicPublishInfo,
                                       final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();
+        /**
+         * broker信息变更了
+         */
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
             tryToFindTopicPublishInfo(mq.getTopic());//从namesvr上再去找一遍
@@ -811,8 +816,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         SendMessageContext context = null;
         if (brokerAddr != null) {
             /**
-             * 如果开通了vip.则使用 减1的端口来写消息
-             * 系统默认是10911  那vip就会使用 10910
+             * 如果开通了vip.则使用 减2的端口来写消息
+             * 系统默认是10911  那vip就会使用 10909
              * 规避掉繁忙端口,阻塞业务
              */
             brokerAddr = MixAll.brokerVIPChannel(this.defaultMQProducer.isSendMessageWithVIPChannel(), brokerAddr);
@@ -822,6 +827,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 //for MessageBatch,ID has been set in the generating process
                 /**
                  * 如果不是批量消息
+                 * 批量消息是在批量处理的地方为每个msg生成了一个uniqid
                  */
                 if (!(msg instanceof MessageBatch)) {
                     /**
@@ -871,6 +877,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         context.setMsgType(MessageType.Trans_Msg_Half);
                     }
                     /**
+                     * consumer端使用
                      * 延时投递 TODO
                      */
                     if (msg.getProperty("__STARTDELIVERTIME") != null || msg.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null) {
@@ -893,9 +900,17 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
                 requestHeader.setReconsumeTimes(0);
                 requestHeader.setUnitMode(this.isUnitMode());
+                /**
+                 * 标识是否是批量消息。批量消息共用一个消息头
+                 * 消息体 各自计算。拼接在一起
+                 */
                 requestHeader.setBatch(msg instanceof MessageBatch);
                 /**
                  * 消息重试逻辑。设置重试次数  消费端使用 TODO
+                 * 设置重试次数
+                 * 最大重试次数
+                 *
+                 * 前面设置在msg中，这里从msg里拿出来，然后删除掉。设置到请求头中
                  */
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     String reconsumeTimes = MessageAccessor.getReconsumeTime(msg);
@@ -913,6 +928,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 SendResult sendResult = null;
                 switch (communicationMode) {
+                    /**
+                     * //异步发送
+                     */
                     case ASYNC:
                         Message tmpMessage = msg;
                         if (msgBodyCompressed) {

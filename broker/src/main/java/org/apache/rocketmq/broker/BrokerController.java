@@ -184,11 +184,12 @@ public class BrokerController {
         this.pullMessageProcessor = new PullMessageProcessor(this);
         /**
          * 拉取请求放在这个里面 TODO
+         * 如果没有信息，则把consumer的拉取请求hold一下。
          */
         this.pullRequestHoldService = new PullRequestHoldService(this);
         /**
          * messa 到来 TODO
-         * 唤醒阻塞的客户端线程拉取消息
+         * 唤醒阻塞的客户端线程拉取消息。
          */
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService);
         /**
@@ -204,7 +205,9 @@ public class BrokerController {
          * broker访问客户端 事务回查
          */
         this.broker2Client = new Broker2Client(this);
+        //订阅信息管理。
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
+        //
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
         this.filterServerManager = new FilterServerManager(this);
         /**
