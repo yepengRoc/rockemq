@@ -1047,6 +1047,7 @@ public class CommitLog {
     }
 
     abstract class FlushCommitLogService extends ServiceThread {
+        //最大尝试次数
         protected static final int RETRY_TIMES_OVER = 10;
     }
 

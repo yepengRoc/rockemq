@@ -132,7 +132,7 @@ public abstract class ServiceThread implements Runnable {
          * 说明这个时候数据来了
          * 会把hasNotified 改为false
          *
-         * 初始化是false.等有数据放入时 改成true.要不会一直在这里cas
+         * 初始化是false.等有数据放入时 改成true.要不会一直在这里cas不成功
          * 这个操作对broker端有用。客户端没有交换的动作
          *
          * 默认第一次进来是 false,因为也没有数据，所以不用进行置换

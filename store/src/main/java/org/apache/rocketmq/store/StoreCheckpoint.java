@@ -36,15 +36,15 @@ public class StoreCheckpoint {
     private final FileChannel fileChannel;
     private final MappedByteBuffer mappedByteBuffer;
     /**
-     * 文件刷盘时间点 8byte
+     * 文件刷盘时间点 8byte TODO
      */
     private volatile long physicMsgTimestamp = 0;
     /**
-     * 消息消费队列文件刷盘时间点 8byte
+     * 消息消费队列文件刷盘时间点 8byte TODO
      */
     private volatile long logicsMsgTimestamp = 0;
     /**
-     * 索引文件刷盘时间点
+     * 索引文件刷盘时间点 TODO
      */
     private volatile long indexMsgTimestamp = 0;
 

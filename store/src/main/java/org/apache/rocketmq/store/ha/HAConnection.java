@@ -48,7 +48,15 @@ public class HAConnection {
         this.socketChannel.socket().setTcpNoDelay(true);
         this.socketChannel.socket().setReceiveBufferSize(1024 * 64);
         this.socketChannel.socket().setSendBufferSize(1024 * 64);
+        /**
+         * WriteSocketService TODO
+         * 线程类
+         */
         this.writeSocketService = new WriteSocketService(this.socketChannel);
+        /**
+         * ReadSocketService TODO
+         * 线程类
+         */
         this.readSocketService = new ReadSocketService(this.socketChannel);
         this.haService.getConnectionCount().incrementAndGet();
     }
@@ -91,6 +99,7 @@ public class HAConnection {
         public ReadSocketService(final SocketChannel socketChannel) throws IOException {
             this.selector = RemotingUtil.openSelector();
             this.socketChannel = socketChannel;
+            //注册
             this.socketChannel.register(this.selector, SelectionKey.OP_READ);
             this.setDaemon(true);
         }
@@ -231,6 +240,7 @@ public class HAConnection {
 
             while (!this.isStopped()) {
                 try {
+                    //
                     this.selector.select(1000);
                     /**
                      * 如果slaveRequestOffset等于-1，说明master未收到slave broker的拉取请求，放弃本次事件处理
@@ -296,7 +306,7 @@ public class HAConnection {
                             continue;
                     }
                     /**
-                     * 从nextTransferFromWhere开始的commitlog数据
+                     * 从nextTransferFromWhere开始的commitlog数据 TODO
                      */
                     SelectMappedBufferResult selectResult =
                         HAConnection.this.haService.getDefaultMessageStore().getCommitLogData(this.nextTransferFromWhere);
@@ -364,7 +374,7 @@ public class HAConnection {
             // Write Header
             while (this.byteBufferHeader.hasRemaining()) {
                 /**
-                 * 写数据 TODO
+                 * 心跳数据-只有一个头数据 TODO
                  */
                 int writeSize = this.socketChannel.write(this.byteBufferHeader);
                 if (writeSize > 0) {
@@ -385,9 +395,12 @@ public class HAConnection {
 
             writeSizeZeroTimes = 0;
 
-            // Write Body
+            // Write Body。头信息写完了，才能写真实的数据
             if (!this.byteBufferHeader.hasRemaining()) {
                 while (this.selectMappedBufferResult.getByteBuffer().hasRemaining()) {
+                    /**
+                     * 写数据 TODO
+                     */
                     int writeSize = this.socketChannel.write(this.selectMappedBufferResult.getByteBuffer());
                     if (writeSize > 0) {
                         writeSizeZeroTimes = 0;

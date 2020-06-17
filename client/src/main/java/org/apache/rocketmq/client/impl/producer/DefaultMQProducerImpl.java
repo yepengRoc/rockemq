@@ -357,6 +357,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 final EndTransactionRequestHeader thisHeader = new EndTransactionRequestHeader();
                 thisHeader.setCommitLogOffset(checkRequestHeader.getCommitLogOffset());
                 thisHeader.setProducerGroup(producerGroup);
+                //事务状态偏移
                 thisHeader.setTranStateTableOffset(checkRequestHeader.getTranStateTableOffset());
                 thisHeader.setFromTransactionCheck(true);
 
@@ -845,6 +846,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
                 /**
                  *  事务消息的 设置sysFlag TODO
+                 *  100
                  */
                 final String tranMsg = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
                 if (tranMsg != null && Boolean.parseBoolean(tranMsg)) {
@@ -1320,6 +1322,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         SendResult sendResult = null;
         /**
          * 标识是事务消息 TODO
+         * TRAN_MSG
          */
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
         /**
@@ -1327,6 +1330,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
          * 1broker向生产者发送回查请求时，通过produce group属性来查找channel
          * 2 生产者通过producer group属性值从producerTable中找生产者实例，用来执行查询本地事务状态逻辑
          * TODO
+         * PGROUP
          */
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
         try {

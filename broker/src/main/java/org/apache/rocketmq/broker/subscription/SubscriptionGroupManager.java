@@ -33,7 +33,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class SubscriptionGroupManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-
+    /**
+     * key:topic value:SubscriptionGroupConfig (所在group 读写队列id)
+     */
     private final ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
         new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();

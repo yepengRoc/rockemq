@@ -148,7 +148,7 @@ public class DefaultMessageStore implements MessageStore {
         this.messageStoreConfig = messageStoreConfig;//message配置
         this.brokerStatsManager = brokerStatsManager;
         /**
-         * 用于创建mappedFile文件
+         * 用于创建mappedFile文件 TODO
          */
         this.allocateMappedFileService = new AllocateMappedFileService(this);//线程  -用于创建 mappedfile文件
         /**
@@ -157,8 +157,14 @@ public class DefaultMessageStore implements MessageStore {
         if (messageStoreConfig.isEnableDLegerCommitLog()) {//deledger
             this.commitLog = new DLedgerCommitLog(this);
         } else {
+            /**
+             * 普通模式下的 TODO
+             */
             this.commitLog = new CommitLog(this);
         }
+        /**
+         * 记录各个消费队列的进度 TODO
+         */
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
         /**
          * 刷盘线程-- 将内存中的consumequeue落盘 TODO
@@ -167,6 +173,9 @@ public class DefaultMessageStore implements MessageStore {
         this.cleanCommitLogService = new CleanCommitLogService();//commit log清理 ，定时任务
         this.cleanConsumeQueueService = new CleanConsumeQueueService();//consumequue清理定时任务
         this.storeStatsService = new StoreStatsService();//线程
+        /**
+         * 索引服务 TODO
+         */
         this.indexService = new IndexService(this);//索引服务
         /**
          * 高可用。如果没有开启 deledger 。则走ha
@@ -185,7 +194,7 @@ public class DefaultMessageStore implements MessageStore {
          */
         this.scheduleMessageService = new ScheduleMessageService(this);
         /**
-         * 对外内存池 TODO
+         * 堆外内存池 TODO
          */
         this.transientStorePool = new TransientStorePool(messageStoreConfig);//堆外临时存储池
 
@@ -197,11 +206,11 @@ public class DefaultMessageStore implements MessageStore {
          */
         this.allocateMappedFileService.start();
         /**
-         *
+         * 索引服务 启动 TODO
          */
         this.indexService.start();
         /**
-         * 构建consume 和index
+         * 构建consume 和index TODO
          */
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());//构建消费队列
@@ -248,7 +257,9 @@ public class DefaultMessageStore implements MessageStore {
             result = result && this.loadConsumeQueue();
 
             if (result) {
-                //数据安全落地的checkpoint,决定commitlog文件从哪里开始恢复？
+                /**
+                 * 数据安全落地的checkpoint,决定commitlog文件从哪里开始恢复？
+                 */
                 this.storeCheckpoint =
                     new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
                 /**
@@ -285,7 +296,10 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes()));
-        lockFile.getChannel().force(true);//强制将lock 写入到lock文件 落盘操作
+        /**
+         * 强制将lock 写入到lock文件 落盘操作
+         */
+        lockFile.getChannel().force(true);
         {
             /**
              * 1. Make sure the fast-forward messages to be truncated during the recovering according to the max physical offset of the commitlog;
@@ -357,13 +371,14 @@ public class DefaultMessageStore implements MessageStore {
              */
             this.haService.start();
             /**
+             * 初始化各个延时队列
              * 延时 消息 队列 的处理 TODO
              */
             this.handleScheduleMessageService(messageStoreConfig.getBrokerRole());
         }
         /**
          * 进行启动 TODO
-         * consumer落盘
+         * consumer落盘线程
          */
         this.flushConsumeQueueService.start();
         /**
@@ -371,9 +386,14 @@ public class DefaultMessageStore implements MessageStore {
          */
         this.commitLog.start();//
         this.storeStatsService.start();
-
+        /**
+         * 创建abort文件
+         */
         this.createTempFile();
-        this.addScheduleTask();//清理文件
+        /**
+         * 清理文件
+         */
+        this.addScheduleTask();
         this.shutdown = false;
     }
 
@@ -1594,8 +1614,12 @@ public class DefaultMessageStore implements MessageStore {
     public void handleScheduleMessageService(final BrokerRole brokerRole) {
         if (this.scheduleMessageService != null) {
             if (brokerRole == BrokerRole.SLAVE) {
+                //slave 不需要
                 this.scheduleMessageService.shutdown();
             } else {
+                /**
+                 * 为每个延时级别创建一个定时任务 TODO
+                 */
                 this.scheduleMessageService.start();
             }
         }
@@ -1924,6 +1948,9 @@ public class DefaultMessageStore implements MessageStore {
 
             while (!this.isStopped()) {
                 try {
+                    /**
+                     * 刷盘间隔 1秒
+                     */
                     int interval = DefaultMessageStore.this.getMessageStoreConfig().getFlushIntervalConsumeQueue();
                     this.waitForRunning(interval);
                     this.doFlush(1);

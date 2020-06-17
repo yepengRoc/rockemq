@@ -306,6 +306,9 @@ public class BrokerController {
             this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
             NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
+            /**
+             * fastRemotingServer
+             */
             this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
             this.sendMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getSendMessageThreadPoolNums(),
@@ -351,7 +354,7 @@ public class BrokerController {
                 this.heartbeatThreadPoolQueue,
                 new ThreadFactoryImpl("HeartbeatThread_", true));
             /**
-             * 事务消息执行线程池
+             * 事务消息执行线程池 TODO
              */
             this.endTransactionExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getEndTransactionThreadPoolNums(),
@@ -365,7 +368,7 @@ public class BrokerController {
                 Executors.newFixedThreadPool(this.brokerConfig.getConsumerManageThreadPoolNums(), new ThreadFactoryImpl(
                     "ConsumerManageThread_"));
             /**
-             * 注册所有的处理器TODO
+             * 注册所有的处理器 TODO
              */
             this.registerProcessor();
 
@@ -383,7 +386,8 @@ public class BrokerController {
                 }
             }, initialDelay, period, TimeUnit.MILLISECONDS);
             /**
-             * 消息消费进度管理-持久化到磁盘
+             * 消息消费进度管理-持久化到磁盘 TODO
+             * 每 5秒执行一次
              */
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override

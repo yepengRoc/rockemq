@@ -44,7 +44,9 @@ public class TopicConfigManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private transient final Lock lockTopicConfigTable = new ReentrantLock();
-
+    /**
+     * key:topic 名称  value:TopicConfig (读写 队列数量；topic名称)
+     */
     private final ConcurrentMap<String, TopicConfig> topicConfigTable =
         new ConcurrentHashMap<String, TopicConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
