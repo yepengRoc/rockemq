@@ -228,8 +228,10 @@ public class TopicConfigManager extends ConfigManager {
         } catch (InterruptedException e) {
             log.error("createTopicInSendMessageMethod exception", e);
         }
-
-        if (createNew) {//创建成功之后。进行注册
+        /**
+         * 创建成功之后。向namesvr进行注册 TODO
+         */
+        if (createNew) {
             this.brokerController.registerBrokerAll(false, true,true);
         }
 

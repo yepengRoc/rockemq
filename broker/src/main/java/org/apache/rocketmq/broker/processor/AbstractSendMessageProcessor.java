@@ -171,6 +171,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         /**
          * topic的权限。通过权限控制，禁用读写，rocketmq运维的时候有用。
          * 扩容的时候可以禁用读写。扩容完之后再恢复
+         * 停用rocket时，可以先设置禁用写，过一段时间消息消费完，无消息挤压，再关闭
          */
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
@@ -210,7 +211,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
             log.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
             /**
-             * 创建topic
+             * 创建topic TODO
              */
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(
                 requestHeader.getTopic(),

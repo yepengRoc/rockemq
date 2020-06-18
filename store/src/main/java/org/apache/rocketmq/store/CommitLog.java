@@ -623,16 +623,18 @@ public class CommitLog {
              * retry
              */
             if (msg.getDelayTimeLevel() > 0) {//延时消费--
+                //超过最大延时级别，则设置为最大延时级别
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
                 }
                 //延时消息主题
                 /**
                  * 更换原来的topi 为 SCHEDULE_TOPIC TODO
+                 * SCHEDULE_TOPIC_XXXX
                  */
                 topic = ScheduleMessageService.SCHEDULE_TOPIC;
                 /**
-                 * 更还queueId TODO
+                 * 更换queueId TODO
                  * 延时级别减1 为当前消息找一个队列
                  * 系统会为每一个延时级别创建一个消息队列
                  */
@@ -744,7 +746,7 @@ public class CommitLog {
          */
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
 
-        // Statistics
+        // Statistics 统计
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
         /**
@@ -765,7 +767,10 @@ public class CommitLog {
         if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
             //同步刷盘
             final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
-            if (messageExt.isWaitStoreMsgOK()) {//如果客户端要确定刷盘是否成功.如果配置了
+            /**
+             * 如果客户端要确定刷盘是否成功.如果配置了。则等待数据落盘。否则 直接返回
+             */
+            if (messageExt.isWaitStoreMsgOK()) {
                 /**
                  * nextoffset :当前内存的写位置 + 本次要写入的字节数
                  * GroupCommitRequest 结构
@@ -1301,7 +1306,10 @@ public class CommitLog {
                                 CommitLog.this.mappedFileQueue.flush(0);
                             }
                         }
-                        //唤醒刷盘结果线程
+                        /**
+                         *  唤醒等待刷盘结果线程。表明已经刷盘成功了。
+                         *  可以继续执行了
+                         */
                         req.wakeupCustomer(flushOK);
                     }
 
@@ -1314,7 +1322,7 @@ public class CommitLog {
                 } else {
                     // Because of individual messages is set to not sync flush, it
                     // will come to this process
-                    //由于个别邮件设置为不同步刷新，它将进入此过程
+                    //由于个别消息 设置为不同步刷新，它将进入此过程。传递参数0,强制刷盘
                     CommitLog.this.mappedFileQueue.flush(0);
                 }
             }
@@ -1425,13 +1433,14 @@ public class CommitLog {
             /**
              * 根据物理位置 broker地址算出来的
              * ip地址  端口  在commitlog中的起始位置 组成msgId
+             * ip+端口+commitlog文件中的起始偏移量
              * TODO
              */
             String msgId = MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(hostHolder), wroteOffset);
 
             // Record ConsumeQueue information
             /**
-             *
+             *topic-queueId
              */
             keyBuilder.setLength(0);
             keyBuilder.append(msgInner.getTopic());
@@ -1498,9 +1507,11 @@ public class CommitLog {
              * maxBlank:当前这个commitlog文件（对应mappedfile的剩余空间）
              * 一个message不能跨两个commitlog
              * 每个commitlog文件要预留8个字节来表示一个commitlog文件的结尾
+             *
+             * ND_FILE_MIN_BLANK_LENGTH 一个文件至少会留 8byte空闲空间 高4 byte存储剩余空间，低4byte存储魔数
              */
             // Determines whether there is sufficient free space
-            if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {//END_FILE_MIN_BLANK_LENGTH 一个文件至少会留 8byte空闲空间 高4 byte存储剩余空间，低4byte存储魔数
+            if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
                 this.resetByteBuffer(this.msgStoreItemMemory, maxBlank);
                 // 1 TOTALSIZE
                 this.msgStoreItemMemory.putInt(maxBlank);//存储剩余空间
@@ -1587,7 +1598,7 @@ public class CommitLog {
                     break;
                 case MessageSysFlag.TRANSACTION_NOT_TYPE:
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
-                    // The next update ConsumeQueue information
+                    // The next update ConsumeQueue information key:topic+queueId  消息队列偏移下标
                     CommitLog.this.topicQueueTable.put(key, ++queueOffset);//更新消息队列逻辑偏移量
                     break;
                 default:

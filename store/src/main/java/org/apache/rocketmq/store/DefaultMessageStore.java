@@ -197,7 +197,7 @@ public class DefaultMessageStore implements MessageStore {
          * 堆外内存池 TODO
          */
         this.transientStorePool = new TransientStorePool(messageStoreConfig);//堆外临时存储池
-
+        //允许启用堆外存储池
         if (messageStoreConfig.isTransientStorePoolEnable()) {//堆外内存池
             this.transientStorePool.init();//c初始化
         }
@@ -501,6 +501,9 @@ public class DefaultMessageStore implements MessageStore {
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
         //propertis
+        /**
+         * proerties 最大长度
+         */
         if (msg.getPropertiesString() != null && msg.getPropertiesString().length() > Short.MAX_VALUE) {
             log.warn("putMessage message properties length too long " + msg.getPropertiesString().length());
             return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
@@ -596,7 +599,7 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public boolean isOSPageCacheBusy() {
         /**
-         *
+         * 相差 1秒
          */
         long begin = this.getCommitLog().getBeginTimeInLock();
         long diff = this.systemClock.now() - begin;

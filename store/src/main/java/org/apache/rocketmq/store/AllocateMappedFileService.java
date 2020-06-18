@@ -116,7 +116,8 @@ public class AllocateMappedFileService extends ServiceThread {
         /**
          * 这里为什么又要get下。
          * 创建好的文件会放入requestTable中 TODO.多线程
-         * 等待第一个文件创建完毕
+         * 等待第一个文件创建完毕就返回
+         * 第二个文件在后台慢慢创建
          */
         AllocateRequest result = this.requestTable.get(nextFilePath);
         try {
@@ -210,6 +211,9 @@ public class AllocateMappedFileService extends ServiceThread {
                 }
 
                 // pre write mappedFile
+                /**
+                 * 创建文件成功，且开启了文件预热 isWarmMapedFileEnable
+                 */
                 if (mappedFile.getFileSize() >= this.messageStore.getMessageStoreConfig()
                     .getMapedFileSizeCommitLog()
                     &&
@@ -246,6 +250,7 @@ public class AllocateMappedFileService extends ServiceThread {
         }
         return true;
     }
+
 
     static class AllocateRequest implements Comparable<AllocateRequest> {
         // Full file path

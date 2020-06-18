@@ -70,7 +70,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
              * 重试消息处理 TODO
              * cosumer消费段使用
              */
-            case RequestCode.CONSUMER_SEND_MSG_BACK://消息进度的ack包.
+            case RequestCode.CONSUMER_SEND_MSG_BACK:
                 return this.consumerSendMsgBack(ctx, request);
             default:
                 SendMessageRequestHeader requestHeader = parseRequestHeader(request);
@@ -312,7 +312,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
             }
             int reconsumeTimes = requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes();
+            /**
+             * 超过最大重试次数
+             */
             if (reconsumeTimes >= maxReconsumeTimes) {
+                /**
+                 * 构建死信 队列topic "%DLQ% + 组名
+                 */
                 newTopic = MixAll.getDLQTopic(groupName);
                 int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
                 topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
@@ -378,7 +384,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
 
         final byte[] body = request.getBody();
-
+        /**
+         * 如果没有选定消息队列 发送
+         */
         int queueIdInt = requestHeader.getQueueId();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         //如果没有指定queueid， 则随机指定一个
@@ -419,6 +427,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
          * 是否是事务消息
          */
         if (traFlag != null && Boolean.parseBoolean(traFlag)) {
+            /**
+             * 如果broker配置拒绝事务消息
+             */
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {//
                 response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark(

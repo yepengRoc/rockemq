@@ -50,7 +50,9 @@ public class TransientStorePool {
 
     public TransientStorePool(final MessageStoreConfig storeConfig) {
         this.storeConfig = storeConfig;
+        //存储池大小。几个
         this.poolSize = storeConfig.getTransientStorePoolSize();
+        //commitlog 大小
         this.fileSize = storeConfig.getMapedFileSizeCommitLog();
         this.availableBuffers = new ConcurrentLinkedDeque<>();
     }
@@ -64,7 +66,9 @@ public class TransientStorePool {
 
             final long address = ((DirectBuffer) byteBuffer).address();
             Pointer pointer = new Pointer(address);
-            //将该批内存锁定，避免被置换到交换区
+            /**
+             *  将该批内存锁定，避免被置换到交换区
+             */
             LibC.INSTANCE.mlock(pointer, new NativeLong(fileSize));
 
             availableBuffers.offer(byteBuffer);
@@ -86,6 +90,7 @@ public class TransientStorePool {
     }
 
     public ByteBuffer borrowBuffer() {
+
         ByteBuffer buffer = availableBuffers.pollFirst();
         if (availableBuffers.size() < poolSize * 0.4) {//可用容量小于%40的时候，会进行日志提醒
             log.warn("TransientStorePool only remain {} sheets.", availableBuffers.size());
