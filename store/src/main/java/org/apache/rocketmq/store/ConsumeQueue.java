@@ -28,7 +28,7 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
  * cosumequeue
  * ---topic目录
  * ------队列编号
- * 数据结构 8字节(commitlog offset)|4字节(size)|8字节(tag hashcode)
+ * 数据结构 8字节(commitlog offset)|4字节(size) 消息长度|8字节(tag hashcode)
  * 单个cosumequeue 文件默认 30w个条目。 单个文件长度为 30w*20字节
  * 单个cosumequeue文件可看成一个数组，其下标为cosumequeue的逻辑偏移量，消息消费进度存储的偏移量即逻辑偏移量
  *
@@ -465,6 +465,7 @@ public class ConsumeQueue {
         final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
         /**
          * 获取最后一个文件 包含创建方法 TODO
+         * consumer文件也是固定大小。以固定大小建立的文件名字
          */
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);
         if (mappedFile != null) {

@@ -154,13 +154,13 @@ public class IndexFile {
                     IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * hashSlotSize
                         + this.indexHeader.getIndexCount() * indexSize;
                 //根据topic-keys 或者topic-uniqueKey计算hash值
-                this.mappedByteBuffer.putInt(absIndexPos, keyHash);
+                this.mappedByteBuffer.putInt(absIndexPos, keyHash);//4
                 //message在commitlog中的位置
-                this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset);
+                this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset);//8
                 //落地时间 - 当前文件的起始时间
-                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);
+                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);//4
                 //在索引数据域把刚才有冲突的hash桶的位置记录下来，这样就构建了一个linklist
-                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue);
+                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue);//4
 
                 /**
                  * 更新hash的索引位置，如果有冲突，已记录下来

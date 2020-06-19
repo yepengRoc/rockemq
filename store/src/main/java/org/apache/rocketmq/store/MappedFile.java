@@ -306,6 +306,7 @@ public class MappedFile extends ReferenceResource {
                 this.fileChannel.position(currentPos);
                 /**
                  * 如果缓冲区写满则落盘 TODO
+                 * write 首先写缓冲区，缓冲区满了，落盘
                  */
                 this.fileChannel.write(ByteBuffer.wrap(data));
             } catch (Throwable e) {

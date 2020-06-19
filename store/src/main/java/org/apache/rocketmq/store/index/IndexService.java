@@ -224,12 +224,14 @@ public class IndexService {
 
             if (req.getUniqKey() != null) {
                 /**
-                 *  uniqkey是客户端生成的messageid，也来源于message的properties
+                 *  uniqkey是客户端生成的，也来源于message的properties
+                 *  messageid 是broker端生成 ip+端口+commitlog中的偏移量
                  *  jvm进程id + ip + 类加载器hashcode+ 启动时间和当前时间的一个差值 + 一个发送端的累计数
                  */
 
                 /**
                  * 构建索引文件的位置 TODO
+                 * buildKey topic+#+uniqkey
                  */
                 indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
                 if (indexFile == null) {
@@ -285,6 +287,9 @@ public class IndexService {
         IndexFile indexFile = null;
 
         for (int times = 0; null == indexFile && times < MAX_TRY_IDX_CREATE; times++) {
+            /**
+             * 创建index 文件 TODO
+             */
             indexFile = this.getAndCreateLastIndexFile();
             if (null != indexFile)
                 break;
