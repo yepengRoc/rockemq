@@ -38,7 +38,9 @@ public class DefaultMessageFilter implements MessageFilter {
         if (subscriptionData.isClassFilterMode()) {
             return true;
         }
-
+        /**
+         * 使用tagscode 进行消息过滤 TODO
+         */
         return subscriptionData.getSubString().equals(SubscriptionData.SUB_ALL)
             || subscriptionData.getCodeSet().contains(tagsCode.intValue());
     }

@@ -57,6 +57,9 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         this.transactionalMessageBridge = transactionBridge;
     }
 
+    /**
+     * key: half topic队列  value:op_half topic队列
+     */
     private ConcurrentHashMap<MessageQueue, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
 
     @Override
@@ -132,6 +135,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             String topic = MixAll.RMQ_SYS_TRANS_HALF_TOPIC;
             /**
              * 获取RMQ_SYS_TRANS_HALF_TOPIC所有MessgeQueue(一个MessageUeue对应一个ConsumeQueue)
+             * 默认事务消息，只有一个consumer
              */
             Set<MessageQueue> msgQueues = transactionalMessageBridge.fetchMessageQueues(topic);
             if (msgQueues == null || msgQueues.size() == 0) {
@@ -140,7 +144,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             }
             log.debug("Check topic={}, queues={}", topic, msgQueues);
             /**
-             * 为每一个ConsumeQueue执行检查逻辑，检查逻辑找到需要进行回查的half消息，并发起回查请求
+             * 为每一个ConsumeQueue执行检查逻辑，检查逻辑找到需要进行回查的half消息，并发起回查请求 TODO
              */
             for (MessageQueue messageQueue : msgQueues) {
                 long startTime = System.currentTimeMillis();
@@ -228,7 +232,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         }
                         /**
                          * 在当前messagequeue的检查逻辑开始后，如果有half消息写入，会发生这种情况
-                         * 则直接跳出进行下一次回查。改消息时新来的。
+                         * 则直接跳出进行下一次回查。该消息是新来的。
                          * 因为Consumequeue是按照顺序构建的，所以该MessageQueue后面的消息都不用回查了
                          */
                         if (msgExt.getStoreTimestamp() >= startTime) {
@@ -275,6 +279,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         //前面条件满足，可以回查了，又加了条件判断？
                         /**
                          * 为了尽快跳过本轮循环-- 着重理解下
+                         *
                          */
                         boolean isNeedCheck = (opMsg == null && valueOfCurrentMinusBorn > checkImmunityTime)
                             || (opMsg != null && (opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout))
@@ -336,11 +341,14 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
      * @param opQueue Op message queue.
      * @param pullOffsetOfOp The begin offset of op message queue.
      * @param miniOffset The current minimum offset of half message queue.
-     * @param doneOpOffset Stored op messages that have been processed.
+     * @param doneOpOffset Stored op messages that have been processed.  存储已经处理的 op 消息
      * @return Op message result.
      */
     private PullResult fillOpRemoveMap(HashMap<Long, Long> removeMap,
         MessageQueue opQueue, long pullOffsetOfOp, long miniOffset, List<Long> doneOpOffset) {
+        /**
+         * 用已经操作偏移量 从 op队列拉取消息
+         */
         PullResult pullResult = pullOpMsg(opQueue, pullOffsetOfOp, 32);
         if (null == pullResult) {
             return null;
@@ -362,10 +370,11 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             return pullResult;
         }
         for (MessageExt opMessageExt : opMsg) {
+            //op consumerqueue存储的是 half 队列的偏移量
             Long queueOffset = getLong(new String(opMessageExt.getBody(), TransactionalMessageUtil.charset));
             log.info("Topic: {} tags: {}, OpOffset: {}, HalfOffset: {}", opMessageExt.getTopic(),
                 opMessageExt.getTags(), opMessageExt.getQueueOffset(), queueOffset);
-            if (TransactionalMessageUtil.REMOVETAG.equals(opMessageExt.getTags())) {
+            if (TransactionalMessageUtil.REMOVETAG.equals(opMessageExt.getTags())) {//已经标识为d 删除
                 if (queueOffset < miniOffset) {
                     doneOpOffset.add(opMessageExt.getQueueOffset());
                 } else {
@@ -392,6 +401,9 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         MessageExt msgExt) {
         String prepareQueueOffsetStr = msgExt.getUserProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET);
         if (null == prepareQueueOffsetStr) {
+            /**
+             * 如果是第一次 则消息属性没有免疫时间，则添加免疫时间放入消息属性，然后放回事务 commitlog。推进half consumerqueue
+             */
             return putImmunityMsgBackToHalfQueue(msgExt);
         } else {
             long prepareQueueOffset = getLong(prepareQueueOffsetStr);
@@ -403,6 +415,9 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     doneOpOffset.add(tmpOpOffset);
                     return true;
                 } else {
+                    /**
+                     * 从新放回 half commitlog，往前推进.
+                     */
                     return putImmunityMsgBackToHalfQueue(msgExt);
                 }
             }

@@ -663,7 +663,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
                 }
                 /**
-                 * 消费启动 --主要是用来清理过期消息  TODO
+                 * 消费启动 --  TODO
+                 * 1 顺序消费，则是定时加锁
+                 * 2并发消费，则是对消息进行清理
                  */
                 this.consumeMessageService.start();
 

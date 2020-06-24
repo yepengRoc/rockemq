@@ -135,7 +135,7 @@ public class PullRequestHoldService extends ServiceThread {
     public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset, final Long tagsCode,
         long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         String key = this.buildKey(topic, queueId);
-        ManyPullRequest mpr = this.pullRequestTable.get(key);
+        ManyPullRequest mpr = this.pullRequestTable.get(key);//topic@queueid
         if (mpr != null) {
             List<PullRequest> requestList = mpr.cloneListAndClear();//克隆并清除
             if (requestList != null) {
@@ -148,6 +148,10 @@ public class PullRequestHoldService extends ServiceThread {
                     }
                     //新到的消息偏移量，则
                     if (newestOffset > request.getPullFromThisOffset()) {
+                        /**
+                         * 进行消息过滤 TODO
+                         * 可以查看下 默认过滤 tags过滤
+                         */
                         boolean match = request.getMessageFilter().isMatchedByConsumeQueue(tagsCode,
                             new ConsumeQueueExt.CqExtUnit(tagsCode, msgStoreTime, filterBitMap));
                         // match by bit map, need eval again when properties is not null.
@@ -159,6 +163,7 @@ public class PullRequestHoldService extends ServiceThread {
                             try {
                                 /**
                                  * 通过一个线程池，再次提交拉取请求 TODO
+                                 * 再次丢回 pullmessageprocessor
                                  */
                                 this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
                                     request.getRequestCommand());

@@ -164,6 +164,7 @@ public class BrokerConfig {
 
     /**
      * The maximum number of times the message was checked, if exceed this value, this message will be discarded.
+     * 事务被检查的最大次数，如果超过此值，该事务消息将被丢弃
      */
     @ImportantField
     private int transactionCheckMax = 15;

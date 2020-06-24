@@ -339,7 +339,7 @@ public class ScheduleMessageService extends ConfigManager {
                                 if (msgExt != null) {
                                     try {
                                         /**
-                                         * 恢复为原来的消息TODO
+                                         * 恢复为原来的消息 TODO
                                          */
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
                                         /**
@@ -379,7 +379,8 @@ public class ScheduleMessageService extends ConfigManager {
                                 }
                             } else {
                                 /**
-                                 * 未到时间。则使用countdown 做一个延时
+                                 * 未到时间。则使用countdown 做一个延时 TODO
+                                 * countdown 时间后触发
                                  */
                                 ScheduleMessageService.this.timer.schedule(
                                     new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
