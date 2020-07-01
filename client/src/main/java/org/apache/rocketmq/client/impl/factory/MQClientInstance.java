@@ -1147,10 +1147,12 @@ public class MQClientInstance {
 
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
-            brokerAddr = map.get(brokerId);
+            brokerAddr = map.get(brokerId);//直接获取主节点地址
             slave = brokerId != MixAll.MASTER_ID;
             found = brokerAddr != null;
-
+            /**
+             * 如果没有找到。 且并不是只指定这一个broker。则查找下一个
+             */
             if (!found && !onlyThisBroker) {
                 Entry<Long, String> entry = map.entrySet().iterator().next();
                 brokerAddr = entry.getValue();

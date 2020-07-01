@@ -385,12 +385,12 @@ public abstract class RebalanceImpl {
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {//不包含当前队列
-                if (isOrder && !this.lock(mq)) {
+                if (isOrder && !this.lock(mq)) {//锁定失败。接着去找下一个队列
                     log.warn("doRebalance, {}, add a new mq failed, {}, because lock failed", consumerGroup, mq);
                     continue;
                 }
 
-                this.removeDirtyOffset(mq);
+                this.removeDirtyOffset(mq);//因为不在处理队列中所以进行移除。
                 ProcessQueue pq = new ProcessQueue();
                 /**
                  * 计算从哪里消费 TODO

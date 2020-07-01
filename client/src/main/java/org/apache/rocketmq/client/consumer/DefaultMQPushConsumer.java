@@ -103,24 +103,29 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * <code>CONSUME_FROM_LAST_OFFSET</code>: consumer clients pick up where it stopped previously.
      * If it were a newly booting up consumer client, according aging of the consumer group, there are two
      * cases:
+     * 消费者客户在之前停止的地方继续消费。 如果这是新启动的消费者客户端，则根据消费者群体的老化情况，有两种情况：
      * <ol>
      * <li>
      * if the consumer group is created so recently that the earliest message being subscribed has yet
      * expired, which means the consumer group represents a lately launched business, consuming will
      * start from the very beginning;
+     * 如果消费者组是最近创建的，则最早的订阅消息尚*到期，这意味着该消费者组代表了一个最近启动的业务，则消费将从一开始就开始；
      * </li>
      * <li>
      * if the earliest message being subscribed has expired, consuming will start from the latest
      * messages, meaning messages born prior to the booting timestamp would be ignored.
+     * 如果最早的已订阅消息已过期，则消费将从最新消息开始，这意味着在启动时间戳之前生成的消息将被忽略。
      * </li>
      * </ol>
      * </li>
      * <li>
      * <code>CONSUME_FROM_FIRST_OFFSET</code>: Consumer client will start from earliest messages available.
+     * 消费者客户端将从最早可用的消息开始。
      * </li>
      * <li>
      * <code>CONSUME_FROM_TIMESTAMP</code>: Consumer client will start from specified timestamp, which means
      * messages born prior to {@link #consumeTimestamp} will be ignored
+     * 消费者客户端将从指定的时间戳开始，这意味着在{@link #consumeTimestamp}之前生成的消息将被忽略
      * </li>
      * </ul>
      */

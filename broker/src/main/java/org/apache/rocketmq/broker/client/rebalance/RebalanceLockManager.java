@@ -48,6 +48,9 @@ public class RebalanceLockManager {
                     }
 
                     LockEntry lockEntry = groupValue.get(mq);
+                    /**
+                     * 构建锁定
+                     */
                     if (null == lockEntry) {
                         lockEntry = new LockEntry();
                         lockEntry.setClientId(clientId);
@@ -64,7 +67,9 @@ public class RebalanceLockManager {
                     }
 
                     String oldClientId = lockEntry.getClientId();
-
+                    /**
+                     * 锁定已经过期了。则更新当前锁定为当前请求锁定的客户端 ip@topic
+                     */
                     if (lockEntry.isExpired()) {
                         lockEntry.setClientId(clientId);
                         lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
@@ -76,7 +81,9 @@ public class RebalanceLockManager {
                             mq);
                         return true;
                     }
-
+                    /**
+                     * 到这里说明已被其它客户端锁定
+                     */
                     log.warn(
                         "tryLock, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}",
                         group,
@@ -120,9 +127,15 @@ public class RebalanceLockManager {
         Set<MessageQueue> notLockedMqs = new HashSet<MessageQueue>(mqs.size());
 
         for (MessageQueue mq : mqs) {
+            /**
+             * 已经锁定，则更新最新锁定时间
+             */
             if (this.isLocked(group, mq, clientId)) {
                 lockedMqs.add(mq);
             } else {
+                /**
+                 * 记录还没有锁定的。后面统一进行锁定
+                 */
                 notLockedMqs.add(mq);
             }
         }

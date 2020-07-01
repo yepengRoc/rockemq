@@ -178,6 +178,9 @@ public class ConsumerGroupInfo {
             String oldTopic = next.getKey();
 
             boolean exist = false;
+            /**
+             * sublist是从客户端过来的 topic list
+             */
             for (SubscriptionData sub : subList) {
                 if (sub.getTopic().equals(oldTopic)) {
                     exist = true;
