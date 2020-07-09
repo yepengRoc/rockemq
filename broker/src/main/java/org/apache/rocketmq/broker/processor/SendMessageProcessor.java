@@ -168,7 +168,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         /**
          * 获取topic配置
          * newTopic
-         * %RETRY%+组名 消费者会通过心跳传输至broker端.创建对应的topic配置信息
+         * %RETRY%+组名 消费者会通过心跳传输至broker端.创建对应的topic配置信息 TODO
+         * 如果没有，则不能处理重试消息
          */
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
             newTopic,

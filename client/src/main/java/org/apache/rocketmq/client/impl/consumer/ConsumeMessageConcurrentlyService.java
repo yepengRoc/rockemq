@@ -281,12 +281,14 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 if (ackIndex >= consumeRequest.getMsgs().size()) {
                     ackIndex = consumeRequest.getMsgs().size() - 1;
                 }
+                // 重置ack为整个消息长度
                 int ok = ackIndex + 1;
                 int failed = consumeRequest.getMsgs().size() - ok;
                 this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), ok);
                 this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), failed);
                 break;
             case RECONSUME_LATER:
+                //重置ack 为-1
                 ackIndex = -1;
                 this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(),
                     consumeRequest.getMsgs().size());
@@ -319,6 +321,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                     if (!result) {
                         /**
                          * 如果消息消费了，consumer later 会从新请求到broker端
+                         * 如果发送到boker失败，记录下来 TODO  消费端有最大重试次数
                          */
                         msg.setReconsumeTimes(msg.getReconsumeTimes() + 1);
                         msgBackFailed.add(msg);
@@ -343,6 +346,9 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
          */
         long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
         if (offset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
+            /**
+             * 记录消费偏移量-然后 PullMessageService 根据这个偏移量再去拉取消息
+             */
             this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), offset, true);
         }
     }

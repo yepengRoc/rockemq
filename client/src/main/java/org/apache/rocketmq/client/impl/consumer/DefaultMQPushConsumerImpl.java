@@ -565,7 +565,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
             MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes() + 1));
             MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes()));
-            newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
+            newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());//失败则重试次数+3
 
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
         }

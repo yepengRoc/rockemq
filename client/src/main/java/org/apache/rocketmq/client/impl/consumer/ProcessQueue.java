@@ -215,6 +215,12 @@ public class ProcessQueue {
                     msgCount.addAndGet(removedCnt);
 
                     if (!msgTreeMap.isEmpty()) {
+                        /**
+                         * 返回红黑树中的最小便宜量，如果还有数据的话 TODO
+                         * 如果此次都正常消费了，则msgTreeMap为空。返回此次最大偏移量
+                         * 并发消费的时候，有可能后面的消息先消费成功。这个时候返回的是
+                         * 红黑树中的最小偏移量
+                         */
                         result = msgTreeMap.firstKey();
                     }
                 }
