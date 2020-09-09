@@ -198,6 +198,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                  * 如果开启自动创建，会在broker 进行创建
                  * 会为当前组在broker端创建信息
                  * AUTO_CREATE_TOPIC_KEY_TOPIC = "TBW102"
+                 * TBW102 用来查询使用
                  * 添加默认主题。如果开启了自动创建topic有用
                  */
                 this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());

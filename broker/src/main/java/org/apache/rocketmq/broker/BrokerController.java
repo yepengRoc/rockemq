@@ -162,8 +162,7 @@ public class BrokerController {
     private InetSocketAddress storeHost;
     private BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
-    private FileWatchService fileWatchService;
-    /**
+    private FileWatchService fileWatchService;/**
      * 事务相关的3个类 TODO
      */
     private TransactionalMessageCheckService transactionalMessageCheckService;
@@ -542,6 +541,9 @@ public class BrokerController {
         return result;
     }
 
+    /**
+     * 事务相关 初始化 TODO
+     */
     private void initialTransaction() {
         this.transactionalMessageService = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_SERVICE_ID, TransactionalMessageService.class);
         if (null == this.transactionalMessageService) {
@@ -1242,7 +1244,7 @@ public class BrokerController {
          * 如果是主切换成从 deleger模式下的 主切换成从 原来的主节点上会有 slaveSyncFuture
          * 普通模式下没有
          */
-        if (role == BrokerRole.SLAVE) {//
+        if (role == BrokerRole.SLAVE) {//从节点没有任务
             //取消原来的定时任务
             if (null != slaveSyncFuture) {
                 slaveSyncFuture.cancel(false);

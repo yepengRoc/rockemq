@@ -168,6 +168,9 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 }
 
                 List<Long> doneOpOffset = new ArrayList<>();
+                /**
+                 * key:half的队列偏移量  value: op_half的队列偏移量
+                 */
                 HashMap<Long, Long> removeMap = new HashMap<>();
                 /**
                  * fillOpRemoveMap中对每一个拉取到的OP消息：比如OP消息内容（对应的half消息的逻辑队列偏移量）和half队列当前偏移量
@@ -175,6 +178,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                  * 这个doneOffset只做后面推进OP逻辑队列位点使用
                  * 2如果大于或等于half队列当前偏移量。则将 halfOffSet : opOffSet 存入removeMap,当前的half消息需不需要回查就看
                  * 它在不在这个removeMap中
+                 *
+                 * doneOpOffset记录的是opHalf的偏移量
                  */
                 PullResult pullResult = fillOpRemoveMap(removeMap, opQueue, opOffset, halfOffset, doneOpOffset);
                 //当前逻辑队列中没有新写入的OP消息，进行下一个队列检查

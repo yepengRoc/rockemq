@@ -21,8 +21,8 @@ public class MessageSysFlag {
     public final static int MULTI_TAGS_FLAG = 0x1 << 1;// 0010  2
     public final static int TRANSACTION_NOT_TYPE = 0;// 0000
     public final static int TRANSACTION_PREPARED_TYPE = 0x1 << 2;//256  0100   4
-    public final static int TRANSACTION_COMMIT_TYPE = 0x2 << 2;//512  196*2  1000 8
-    public final static int TRANSACTION_ROLLBACK_TYPE = 0x3 << 2;//768  1100  13
+    public final static int TRANSACTION_COMMIT_TYPE = 0x2 << 2;//512  196*2  1000 8      10   1000
+    public final static int TRANSACTION_ROLLBACK_TYPE = 0x3 << 2;//768  1100  12
 
     public static int getTransactionValue(final int flag) {
         return flag & TRANSACTION_ROLLBACK_TYPE;

@@ -39,6 +39,12 @@ public class HAConnection {
     private volatile long slaveRequestOffset = -1;//slave请求发送的offset
     private volatile long slaveAckOffset = -1;//salve相应的offset
 
+    /**
+     *
+     * @param haService 服务端haservice
+     * @param socketChannel  对应的客户端连接
+     * @throws IOException
+     */
     public HAConnection(final HAService haService, final SocketChannel socketChannel) throws IOException {
         this.haService = haService;
         this.socketChannel = socketChannel;
@@ -182,7 +188,7 @@ public class HAConnection {
                             //获取离bytebufferRead.position()最近的8的整数（获得当前最后一个完整的包）
                             int pos = this.byteBufferRead.position() - (this.byteBufferRead.position() % 8);
                             //读取能读到的最后一个有效的8字节
-                            long readOffset = this.byteBufferRead.getLong(pos - 8);
+                            long readOffset = this.byteBufferRead.getLong(pos - 8);//long值 记录的是偏移量
                             this.processPostion = pos;
                             //更新slave broker反馈的已拉取完成的数据偏移量
                             HAConnection.this.slaveAckOffset = readOffset;

@@ -332,6 +332,11 @@ public class DefaultMessageStore implements MessageStore {
                  *
                  * All the conditions has the same in common that the maxPhysicalPosInLogicQueue should be 0.
                  * If the maxPhysicalPosInLogicQueue is gt 0, there maybe something wrong.
+                 * 在以下情况下会发生这种情况：
+                 * 1.如果有人删除了所有消费队列文件，或者磁盘损坏了。
+                 * 2.启动一个新的代理，并从其他代理复制提交日志。
+                 * 所有条件的共同点都相同，即maxPhysicalPosInLogicQueue应该为0。
+                 * 如果maxPhysicalPosInLogicQueue 大于 0，则可能有问题。
                  */
                 log.warn("[TooSmallCqOffset] maxPhysicalPosInLogicQueue={} clMinOffset={}", maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset());
             }

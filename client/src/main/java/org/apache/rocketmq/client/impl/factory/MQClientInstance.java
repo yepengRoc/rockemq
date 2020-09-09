@@ -706,10 +706,10 @@ public class MQClientInstance {
                             log.info("the topic[{}] route info changed, old[{}] ,new[{}]", topic, old, topicRouteData);
                         }
 
-                        if (changed) {
+                        if (changed) {//如果变化的话，则以namesvr为主，更新本地
                             TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
 
-                            for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                            for (BrokerData bd : topicRouteData.getBrokerDatas()) {//覆盖本地
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
                             }
 

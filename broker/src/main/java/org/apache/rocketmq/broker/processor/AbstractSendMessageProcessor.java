@@ -220,7 +220,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 requestHeader.getDefaultTopicQueueNums(), topicSysFlag);
 
             if (null == topicConfig) {
-                if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {//持久化重试topic
                     topicConfig =
                         this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
                             requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ,

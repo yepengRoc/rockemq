@@ -16,6 +16,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+
+import com.sun.xml.internal.bind.v2.TODO;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -110,7 +112,7 @@ public class HAService {
      */
     public void start() throws Exception {
         /**
-         * 开始接受
+         * 服务端 开始接受。初始化 serversockert
          */
         this.acceptSocketService.beginAccept();
         /**
@@ -212,6 +214,7 @@ public class HAService {
         }
 
         /**
+         * 处理从服务器连接请求
          * {@inheritDoc}
          */
         @Override
@@ -499,7 +502,7 @@ public class HAService {
             while (true) {
                 int diff = this.byteBufferRead.position() - this.dispatchPostion;
                 if (diff >= msgHeaderSize) {//不够msgHeaderSize 说明，空间不够了
-                    long masterPhyOffset = this.byteBufferRead.getLong(this.dispatchPostion);//从 dis 位置读取8个字节
+                    long masterPhyOffset = this.byteBufferRead.getLong(this.dispatchPostion);//从 dis 位置读取8个字节。记录的是master的最大物理偏移量。主从应该是一致的
                     int bodySize = this.byteBufferRead.getInt(this.dispatchPostion + 8);//从 dis +8 读取4个字节，记录了消息的长度
                     //获取当前本地的commitlog的偏移量
                     long slavePhyOffset = HAService.this.defaultMessageStore.getMaxPhyOffset();
@@ -534,7 +537,9 @@ public class HAService {
                         continue;
                     }
                 }
-                //如果byteBufferRead没有剩余空间，则调用reallocateByteBuffer() TODO
+                /**
+                 * 如果byteBufferRead没有剩余空间，则调用reallocateByteBuffer() TODO
+                 */
                 if (!this.byteBufferRead.hasRemaining()) {
                     this.reallocateByteBuffer();
                 }
@@ -573,7 +578,7 @@ public class HAService {
                         }
                     }
                 }
-                //currentReportedOffset为当前CommitLog的最大威力偏移
+                //currentReportedOffset为当前CommitLog的最大物理偏移
                 this.currentReportedOffset = HAService.this.defaultMessageStore.getMaxPhyOffset();
                 //更新最新的写入时间戳
                 this.lastWriteTimestamp = System.currentTimeMillis();
@@ -626,7 +631,9 @@ public class HAService {
                         }
                         //
                         this.selector.select(1000);
-                        //处理读事件 TODO 需要进去看看
+                        /**
+                         * 处理读事件 TODO 需要进去看看
+                         */
                         boolean ok = this.processReadEvent();
                         if (!ok) {
                             this.closeMaster();
