@@ -120,7 +120,7 @@ public class TopicPublishInfo {
         int index = this.sendWhichQueue.getAndIncrement();
         /**
          * 这里为什么会小于0
-         * 因为到达integer的最大值，则会是负数
+         * 因为到达integer的最小值，则会是负数
          */
         int pos = Math.abs(index) % this.messageQueueList.size();
         if (pos < 0)

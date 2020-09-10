@@ -52,13 +52,24 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
         }
 
         int index = cidAll.indexOf(currentCID);//找到当前的客户端id
-        int mod = mqAll.size() % cidAll.size();//
         /**
+         * 消息队列的数量多于或 消费端数量
+         * mod 都大于 0
+         */
+        int mod = mqAll.size() % cidAll.size();
+        /**
+         *消息队列的数量 小于 消费端数量。则 默认一个消费端配置1个队列
+         * 消息队列的数量 大于 消费端数量。
+         *   如果不大于2倍，则平均一个消费端消费2个
+         *   如果mod等于0，刚好是整数倍，则取 除出来的数
          *
          */
         int averageSize =
             mqAll.size() <= cidAll.size() ? 1 : (mod > 0 && index < mod ? mqAll.size() / cidAll.size()
                 + 1 : mqAll.size() / cidAll.size());
+        /**
+         * mod 大于0
+         */
         int startIndex = (mod > 0 && index < mod) ? index * averageSize : index * averageSize + mod;
         int range = Math.min(averageSize, mqAll.size() - startIndex);
         for (int i = 0; i < range; i++) {

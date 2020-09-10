@@ -96,7 +96,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         if (!tmpList.isEmpty()) {
             //随机打乱数组
             Collections.shuffle(tmpList);
-            //排序 根据 是否可用  失败次数  时间 排序
+            //排序 根据 是否可用  失败次数（延迟级别）  时间 排序
             /**
              * 是否可用  再次检查是否到了可用时间
              * 延迟级别 小的
