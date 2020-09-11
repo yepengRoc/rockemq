@@ -154,7 +154,7 @@ public class ProcessQueue {
                 }
 
                 if (!msgs.isEmpty()) {
-                    MessageExt messageExt = msgs.get(msgs.size() - 1);
+                    MessageExt messageExt = msgs.get(msgs.size() - 1);//获取拉取回来的最后一条消息
                     String property = messageExt.getProperty(MessageConst.PROPERTY_MAX_OFFSET);
                     if (property != null) {
                         long accTotal = Long.parseLong(property) - messageExt.getQueueOffset();

@@ -61,6 +61,7 @@ public class RebalancePushImpl extends RebalanceImpl {
 
         int currentQueueCount = this.processQueueTable.size();
         if (currentQueueCount != 0) {
+            //每个队列的拉取阈值，允许最大消费者个数
             int pullThresholdForTopic = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdForTopic();
             if (pullThresholdForTopic != -1) {
                 int newVal = Math.max(1, pullThresholdForTopic / currentQueueCount);
@@ -68,7 +69,9 @@ public class RebalancePushImpl extends RebalanceImpl {
                     this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdForQueue(), newVal);
                 this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().setPullThresholdForQueue(newVal);
             }
-
+            /**
+             * 每个队列的最大拉取信息大小
+             */
             int pullThresholdSizeForTopic = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdSizeForTopic();
             if (pullThresholdSizeForTopic != -1) {
                 int newVal = Math.max(1, pullThresholdSizeForTopic / currentQueueCount);
@@ -151,7 +154,7 @@ public class RebalancePushImpl extends RebalanceImpl {
             case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST:
             case CONSUME_FROM_MIN_OFFSET:
             case CONSUME_FROM_MAX_OFFSET:
-            case CONSUME_FROM_LAST_OFFSET: {
+            case CONSUME_FROM_LAST_OFFSET: {//找当前最新的一个偏移量。有的话就用这个。没有的话，看是否是重试topic.是的话 从0开始，不是的话，从broker拉取一次最大偏移量
                 long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
                 if (lastOffset >= 0) {
                     result = lastOffset;
@@ -173,7 +176,7 @@ public class RebalancePushImpl extends RebalanceImpl {
                 }
                 break;
             }
-            case CONSUME_FROM_FIRST_OFFSET: {
+            case CONSUME_FROM_FIRST_OFFSET: {//找当前最新的一个偏移量。有的话就用这个。没有就从1
                 long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
                 if (lastOffset >= 0) {
                     result = lastOffset;
@@ -192,7 +195,8 @@ public class RebalancePushImpl extends RebalanceImpl {
                     if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         try {
                             /**
-                             * 从broker开始查找
+                             * 重试topic
+                             * 从broker开始查找。找当前最大偏移量
                              */
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
@@ -203,7 +207,7 @@ public class RebalancePushImpl extends RebalanceImpl {
                             long timestamp = UtilAll.parseDate(this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeTimestamp(),
                                 UtilAll.YYYYMMDDHHMMSS).getTime();
                             /**
-                             * 从broker开始查找
+                             * 从broker开始查找.找大于等于当前时间的消息
                              */
                             result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
                         } catch (MQClientException e) {

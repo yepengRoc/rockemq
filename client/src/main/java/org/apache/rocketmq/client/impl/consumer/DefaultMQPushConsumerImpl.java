@@ -230,8 +230,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
          * 本地可以缓存的最大消息 容量  超过了的话则不进行消费
          */
         long cachedMessageSizeInMiB = processQueue.getMsgSize().get() / (1024 * 1024);
-
-        if (cachedMessageCount > this.defaultMQPushConsumer.getPullThresholdForQueue()) {
+        /**
+         * 条数限制。 超过 延迟 50毫秒 后从新放入拉取队列
+         */
+        if (cachedMessageCount > this.defaultMQPushConsumer.getPullThresholdForQueue()) {//
             /**
              * 把拉取请求延时 放入到拉取队列 TODO
              */
@@ -243,8 +245,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             }
             return;
         }
-
+        /**
+         * 容量限制。 超过 延迟 50毫秒 放入到拉取队列
+         */
         if (cachedMessageSizeInMiB > this.defaultMQPushConsumer.getPullThresholdSizeForQueue()) {
+
             this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL);
             if ((queueFlowControlTimes++ % 1000) == 0) {
                 log.warn(
@@ -319,7 +324,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         case FOUND:
                             long prevRequestOffset = pullRequest.getNextOffset();
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
-                            long pullRT = System.currentTimeMillis() - beginTimestamp;
+                            long pullRT = System.currentTimeMillis() - beginTimestamp;//一个来回时间
                             DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullRT(pullRequest.getConsumerGroup(),
                                 pullRequest.getMessageQueue().getTopic(), pullRT);
 

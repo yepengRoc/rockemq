@@ -222,7 +222,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                     }
                 }
                 /**
-                 * 消息消费又放到一个 线程里TODO
+                 * 消息消费又放到一个 线程里 TODO
+                 * 并发消费
                  */
                 ConsumeRequest consumeRequest = new ConsumeRequest(msgThis, processQueue, messageQueue);
                 try {
@@ -342,12 +343,12 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
         /**
          * TODO  删除老的信息。标识已经消费过了。
-         * 这里直接把消费失败的信息也删了，因为又发送到 broker了
+         * 这里直接把已经消费的信息删了(不论成功失败，失败的上面已经从新发送到broker 了)，因为又发送到 broker了
          */
         long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
         if (offset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
             /**
-             * 记录消费偏移量-然后 PullMessageService 根据这个偏移量再去拉取消息
+             * 记录消费偏移量-然后 PullMessageService 根据这个偏移量再去拉取消息。更新偏移量为最大偏移量
              */
             this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), offset, true);
         }

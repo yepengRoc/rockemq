@@ -282,7 +282,7 @@ public abstract class RebalanceImpl {
                     List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
                     mqAll.addAll(mqSet);
 
-                    Collections.sort(mqAll);//根据topic 排序
+                    Collections.sort(mqAll);//根据topic 排序  broker名字
                     Collections.sort(cidAll);//根据ip排序
 
                     AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
