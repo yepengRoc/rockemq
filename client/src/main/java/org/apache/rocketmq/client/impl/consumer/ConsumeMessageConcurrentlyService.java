@@ -344,6 +344,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         /**
          * TODO  删除老的信息。标识已经消费过了。
          * 这里直接把已经消费的信息删了(不论成功失败，失败的上面已经从新发送到broker 了)，因为又发送到 broker了
+         *
+         * 看下这个方法 removeMessage
          */
         long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
         if (offset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
